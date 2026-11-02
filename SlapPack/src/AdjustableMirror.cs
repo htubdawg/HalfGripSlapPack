@@ -7,6 +7,7 @@ namespace HalfGripSlapPack
 {
     public sealed class AdjustableMirror : Grabbable
     {
+        internal static AdjustableMirror Active { get; private set; }
         internal Grabber Grabber { get; private set; }
         private Camera rearCamera;
         private Quaternion originalRotation;
@@ -16,6 +17,8 @@ namespace HalfGripSlapPack
         private Quaternion originalMirrorRotation;
         private Vector3 scaledMount;
         private Vector3 localGrip;
+        private SpriteRenderer[] mirrorSprites;
+        private SpriteRenderer[] handSprites;
         private MirrorSettings settings;
         private MirrorAdjustment adjustment;
         private Vector2 previousHand;
@@ -40,6 +43,13 @@ namespace HalfGripSlapPack
             originalMirrorPosition = housing.localPosition;
             originalMirrorRotation = housing.localRotation;
             scaledMount = Vector3.Scale(housing.localScale, mount);
+            mirrorSprites = housing.GetComponentsInChildren<SpriteRenderer>(true);
+            handSprites = new[] {
+                grabber.idleSprite, grabber.interactibleSprite,
+                grabber.handIndicator ? grabber.handIndicator.GetComponent<SpriteRenderer>() : null,
+                grabber.idleInteractibleSprite, grabber.idleHeldSprite, grabber.interactibleHeldSprite
+            };
+            Active = this;
             adjustment = new MirrorAdjustment(config.Yaw.Value, config.Pitch.Value);
             adjustment.Move(0, 0, 1, config.YawLimit.Value, config.PitchLimit.Value);
             keepPhysicalCursorClose = false;
@@ -130,6 +140,12 @@ namespace HalfGripSlapPack
             grabbedPoint = WorldToPlane(visualMirror.TransformPoint(localGrip)) - position;
         }
 
+        internal void KeepHandInFront(Grabber grabber)
+        {
+            if (restored || grabber != Grabber || !grabber.viewCamera || mirrorSprites == null) return;
+            MirrorHandDepth.KeepInFront(grabber.viewCamera, mirrorSprites, handSprites);
+        }
+
         private void CancelDrag()
         {
             blockRelease = false;
@@ -146,6 +162,7 @@ namespace HalfGripSlapPack
         {
             if (restored) return;
             restored = true;
+            if (Active == this) Active = null;
             if (IsGrabbed) Release();
             if (rearCamera) rearCamera.transform.localRotation = originalRotation;
             if (visualMirror)

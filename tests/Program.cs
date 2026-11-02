@@ -71,6 +71,29 @@ internal static class Program
             a.Move(1, 1, float.PositiveInfinity, 30, 20);
             Equal(3, a.Yaw); Equal(4, a.Pitch);
         });
+        Check("Hand clears a mirror approaching or receding through its old depth", () =>
+        {
+            for (float mirrorDepth = 2; mirrorDepth <= 20; mirrorDepth += 0.25f)
+            {
+                float depth = HandDepth.InFrontOfMirror(8, 8, mirrorDepth, 0.1f);
+                if (depth > mirrorDepth - HandDepth.Clearance + 0.0001f)
+                    throw new Exception("Hand intersects mirror at depth " + mirrorDepth);
+            }
+        });
+        Check("Hand already in front retains its depth", () =>
+        {
+            Equal(5, HandDepth.InFrontOfMirror(5, 5, 8, 0.1f));
+        });
+        Check("The entire hand clears the glass, including depth beyond its pivot", () =>
+        {
+            float depth = HandDepth.InFrontOfMirror(8, 8.4f, 7, 0.1f);
+            Equal(7 - HandDepth.Clearance, depth + 0.4f);
+        });
+        Check("Clearance respects near clipping and never pushes a hand backwards", () =>
+        {
+            Equal(0.15f, HandDepth.InFrontOfMirror(8, 8, 0.1f, 0.1f));
+            Equal(0.12f, HandDepth.InFrontOfMirror(0.12f, 0.12f, 0.1f, 0.1f));
+        });
         Console.WriteLine(passed + " tests passed.");
     }
 }

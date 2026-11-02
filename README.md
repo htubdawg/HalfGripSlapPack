@@ -19,6 +19,7 @@ The development `.csproj` and its `bin`/`obj` folders are not needed in the game
 - Defaults allow 30 degrees horizontally and 20 degrees vertically. Sensitivity and limits are configurable in
   `BepInEx/config/halfgrip.slappack.cfg`; `SavedYaw` and `SavedPitch` store the shared setting across races.
 - Pausing, losing focus, releasing the hand, or switching out of the cockpit cancels an active drag.
+- The mirror stays behind overlapping hand cursor sprites, including hover, hold, and release transitions, as its angle changes.
 - If the Smart Mirror upgrade is active, manual adjustment suspends its auto-aim. Auto-aim resumes when Slap Pack unloads.
 
 The mirror surface tilts by half the camera adjustment angle, approximating how reflection doubles the change in viewing direction.
@@ -41,7 +42,8 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The eight tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, and invalid numeric inputs.
+The twelve tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+and hand depth clearance as the mirror approaches or recedes, including sprite depth and near clipping.
 They do not validate Unity input, scene binding, or rendering.
 
 ## In-game acceptance checks
@@ -50,6 +52,8 @@ They do not validate Unity input, scene binding, or rendering.
 - Drag each axis independently. Confirm the view moves in the expected direction and the hand targets the mirror only.
 - Confirm the casing and glass move together around the fixed top mount, with no separation or clipping. Check that the hitbox and
   held hand follow the mirror at all four adjustment extremes, and that repeated drags do not drift when the housing tilts.
+- At each extreme, hover, grab, release, and pass the idle hand across the glass. Confirm the screen stays behind every hand pose
+  without flickering, and that cursor screen position and release behavior remain unchanged.
 - Reach each stop and reverse direction; adjustment should respond immediately without a dead zone.
 - Release, grab again, and right-click reset both while hovering and while holding. Check for jumps or drifting.
 - Drag well beyond an adjustment stop, then release. Confirm the hand remains at its visible grip instead of jumping to the hidden
