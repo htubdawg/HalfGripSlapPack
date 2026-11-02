@@ -1,9 +1,9 @@
 {
   "id": "slappack",
   "name": "Slap Pack",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "htubdawg",
-  "description": "Adjustable rear-view mirror plus window-crank development diagnostics. Window interaction is not yet connected.",
+  "description": "Adjustable rear-view mirror and stock door window-crank prototype. Turn the existing crank artwork to lower or raise lightly tinted door glass.",
   "gameVersion": "0.418",
   "tools": "1.0.6"
 }

@@ -15,12 +15,14 @@ namespace HalfGripSlapPack
             Object.DontDestroyOnLoad(host);
             host.AddComponent<MirrorInstaller>().Initialize(ctx);
             host.AddComponent<WindowDiagnostics>().Initialize(ctx);
+            host.AddComponent<WindowInstaller>().Initialize(ctx);
         }
 
         public override void Unload()
         {
             if (!host) return;
             host.GetComponent<MirrorInstaller>().RemoveMirror();
+            host.GetComponent<WindowInstaller>().RemoveWindows();
             Object.Destroy(host);
             host = null;
         }

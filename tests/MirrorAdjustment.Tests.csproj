@@ -11,5 +11,6 @@
     <Compile Include="../SlapPack/src/MirrorCullingMask.cs" Link="MirrorCullingMask.cs" />
     <Compile Include="../SlapPack/src/WindowTravel.cs" Link="WindowTravel.cs" />
     <Compile Include="../SlapPack/src/MeshBufferData.cs" Link="MeshBufferData.cs" />
+    <Compile Include="../SlapPack/src/WindowPolygon.cs" Link="WindowPolygon.cs" />
   </ItemGroup>
 </Project>

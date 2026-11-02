@@ -5,18 +5,38 @@ Planned features: adjustable rear-view mirror, turn signals, windshield wipers, 
 
 ## Window-crank development branch
 
-`test/window-cranks` starts from the working mirror branch. This first window build adds a tested, independent travel model for
-each door and a runtime geometry report. **The cranks are not yet connected to interaction, and no tint or window animation is applied yet.**
+`test/window-cranks` starts from the working mirror branch. Version **0.3.0** adds the first interactive window prototype for the stock
+cabin atlas. **The new window rendering and interaction have not yet been playtested.**
 
-The target is to reuse the driver's and passenger's existing cranks, with circular hand movement, approximately three turns for full
-travel, and windows initially fully raised. Both door panes will receive a very light glass tint so their upper edge is visible as they
-lower. The windshield will remain unchanged. Tint strength and the exact travel will be tuned against the actual geometry.
+Look toward either door, grab its existing crank artwork with the normal hand control, and move the hand in circles. Clockwise lowers
+that window; counterclockwise raises it. The two windows move independently, stop at the ends, and start fully raised each race.
+Release leaves the window at its current height. Three crank turns span the default full travel.
 
-The available reference dumps collapse generic interior meshes and do not identify separate crank objects. They also lack vertex/UV
-data needed to split door glass from a combined windshield/window mesh. A live geometry report is needed to decide whether the cranks
-are separate meshes or artwork baked into the door texture, and to bind the correct panes without guessing positions.
+The cranks are painted into the door atlas. Slap Pack locates the artwork through the original UVs, replaces its static image in a
+private material/texture copy, and rotates an isolated copy of that same artwork at its original location. No game artwork is shipped
+with the mod. Unsupported cabin textures are skipped with a warning instead of modifying unrecognized doors.
 
-To collect it, install this build as below, start a race, and wait a few seconds. Look for `Window-crank geometry report written to`
+Only the two matching front door glass regions receive a faint blue-gray **4% opacity** effect. Lowered glass is clipped to its original
+opening so it disappears into the door rather than protruding through the frame. The windshield, rear glass, source meshes, and shared
+glass material are unchanged. This prototype changes visible glass only; it does not change glass damage, bullet collision, rain, or audio.
+
+Settings in `BepInEx/config/halfgrip.slappack.cfg` (restart after editing tint or travel):
+
+```ini
+[Windows]
+Enabled = true
+TintOpacity = 0.04
+TurnsForFullTravel = 3
+WriteGeometryReport = false
+```
+
+Tint opacity allows 0–0.15; travel allows 1–8 turns. Disabling windows or unloading Slap Pack removes the added panes/controls and restores
+the original door materials. Camera switching retains travel; changing car models rebuilds the window bindings.
+
+## Optional window geometry diagnostics
+
+The supplied runtime GPU report identified the stock crank UVs and front door panes for both stock cabin meshes. To collect another
+report for troubleshooting, set `WriteGeometryReport = true`, start a race, and look for `Window-crank geometry report written to`
 in `BepInEx/LogOutput.log`. The report folder is:
 
 ```text
@@ -32,12 +52,7 @@ These are private game reference assets:
 keep the reports out of the mod repository and distribution archives. The diagnostic does not change shared meshes, materials, or glass.
 Try each car model you want supported, since their doors can differ.
 
-The diagnostic runs once per spawned player car. To stop generating reports, set this in `BepInEx/config/halfgrip.slappack.cfg`:
-
-```ini
-[Windows]
-WriteGeometryReport = false
-```
+The diagnostic runs once per spawned player car. Turn it off after troubleshooting; it can pause the game briefly while reading GPU data.
 
 The first prototype implements the adjustable **interior rear-view mirror** for Half Grip **0.418**, using **HalfGripTools 1.0.6+**.
 It compiles against the game's reference assemblies; in-game behavior is still awaiting validation.
@@ -91,12 +106,23 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The twenty-six tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The thirty tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
-and invalid input. Runtime window binding and tint remain pending the geometry report.
+and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
 Additional tests check half-precision GPU vertex decoding, including subnormal and invalid values. These tests do not exercise Unity's
 GPU readback API; that path requires an in-game diagnostic run.
+
+## Window prototype playtest
+
+- Confirm the log reports `Windows bound` and that both cranks appear in their original locations without duplicate artwork or a bright square patch.
+- Look toward each door and try several clockwise/counterclockwise turns. Check that the visible crank and hand stay aligned, each window moves
+  independently, and reversing at the stops responds immediately.
+- Check tint at fully raised, half raised, and fully lowered states. The upper edge should descend into the door; windshield and rear glass should
+  remain unchanged. Report whether the default 4% opacity is visible enough.
+- Release/re-grab, pause, lose focus, switch to the outside camera and back, restart a race, and try the other stock car model.
+- Disable Slap Pack and confirm original door artwork/materials return and all added tint and controls disappear.
+- Check existing mirror, steering, gun, and nearby cockpit controls still work.
 They do not validate Unity input, scene binding, or rendering.
 
 ## In-game acceptance checks

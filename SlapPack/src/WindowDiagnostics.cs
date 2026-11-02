@@ -23,7 +23,7 @@ namespace HalfGripSlapPack
         internal void Initialize(ModContext ctx)
         {
             context = ctx;
-            enabledReport = ctx.Config.Bind("Windows", "WriteGeometryReport", true,
+            enabledReport = ctx.Config.Bind("Windows", "WriteGeometryReport", false,
                 "Window-crank development: export the local car's cabin hierarchy, readable meshes and material previews once per spawned car. Does not alter the windows.");
             ctx.OnSceneLoaded(scene => { reportedCar = 0; nextScan = Time.unscaledTime + 1f; });
         }

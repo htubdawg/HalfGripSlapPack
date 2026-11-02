@@ -16,10 +16,16 @@ The first runtime report was captured in `SCENE_TRACK_1_RaceTrack` using Slap Pa
 
 Version 0.2.1 extends the diagnostic to read the existing vertex/index buffers into local arrays when the CPU copy is unavailable.
 It handles Float32/Float16 positions/UVs and UInt16/UInt32 indices, accounts for submesh offsets/base vertices, and caches each mesh
-snapshot for the duration of an export. It does not alter meshes, materials, or buffer usage flags. Runtime readback is still unverified.
+snapshot for the duration of an export. It does not alter meshes, materials, or buffer usage flags. The second report confirmed GPU readback works
+on the user's Windows game runtime.
 
-Next: inspect the GPU-backed vertex/UV report to locate both crank faces/pivots and the door-glass outlines. Reuse the existing crank
-geometry/artwork where feasible, bind each door to independent `WindowTravel`, and create the minimal visible glass effect on the side
-panes only. If a device cannot export the buffers, diagnose the recorded error before choosing another supported readback route.
+The second report resolves the crank landmark to two side-facing triangles on each stock cabin's `Cube.009` mesh. Their car-space X values have
+opposite signs, providing independent driver/passenger bindings. Their materials use the same door atlas. The active world model is selected
+through `CameraSwitch.interiorModels`; the inactive `CarInterior/Reference` is not used as the visible artwork.
+
+The original glass triangles form connected components. Selecting same-side components with lateral normals and closest centers to the cranks
+identifies the front door glass and excludes the windshield/rear panes in both supplied stock models. Version 0.3.0 binds these at runtime using
+the GPU snapshot, without committing game mesh data. Its pane motion projects the opening to a best-fit plane, lowers a tinted copy, and clips it
+against the original opening. Native collision/damage behavior is unchanged. New controls/rendering still need an in-game playtest.
 
 Do not commit the report, mesh data, or texture previews: they are private game reference assets.

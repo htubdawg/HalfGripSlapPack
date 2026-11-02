@@ -197,6 +197,52 @@ internal static class Program
                 !float.IsNaN(MeshBufferData.HalfToSingle(0x7c01)))
                 throw new Exception("Invalid GPU coordinate was masked.");
         });
+        Check("Raised window fills its opening and fully lowered glass disappears", () =>
+        {
+            var opening = WindowPolygon.Hull(new[] { new PanePoint(0, 0), new PanePoint(2, 0), new PanePoint(2, 1), new PanePoint(0, 1) });
+            Equal(2, Area(WindowPolygon.Lower(opening, 0)));
+            Equal(0, Area(WindowPolygon.Lower(opening, 1)));
+        });
+        Check("Half-lowered rectangular glass occupies the lower half only", () =>
+        {
+            var opening = WindowPolygon.Hull(new[] { new PanePoint(0, 0), new PanePoint(2, 0), new PanePoint(2, 1), new PanePoint(0, 1) });
+            var lowered = WindowPolygon.Lower(opening, 0.5f);
+            Equal(1, Area(lowered));
+            foreach (var p in lowered) if (p.Y < -0.0001f || p.Y > 0.5001f) throw new Exception("Glass escaped its door opening.");
+        });
+        Check("Sloped door glass remains clipped inside its frame throughout travel", () =>
+        {
+            var opening = WindowPolygon.Hull(new[] { new PanePoint(0, 0), new PanePoint(3, 0), new PanePoint(2, 1), new PanePoint(0, 1) });
+            float previous = Area(opening);
+            for (int i = 0; i <= 10; i++)
+            {
+                var polygon = WindowPolygon.Lower(opening, i / 10f);
+                float area = Area(polygon);
+                if (area > previous + 0.0001f) throw new Exception("Glass area increased while lowering.");
+                foreach (var p in polygon)
+                    if (p.X < -0.0001f || p.Y < -0.0001f || p.Y > 1.0001f || p.X + p.Y > 3.0001f)
+                        throw new Exception("Glass escaped its sloped frame.");
+                previous = area;
+            }
+        });
+        Check("Pane hull removes shared triangle vertices without losing the opening", () =>
+        {
+            var hull = WindowPolygon.Hull(new[] { new PanePoint(0, 0), new PanePoint(2, 0), new PanePoint(2, 1),
+                new PanePoint(0, 0), new PanePoint(2, 1), new PanePoint(0, 1), new PanePoint(1, 0.5f) });
+            if (hull.Count != 4) throw new Exception("Triangle seams survived in the pane outline.");
+            Equal(2, Area(hull));
+        });
         Console.WriteLine(passed + " tests passed.");
+    }
+
+    private static float Area(System.Collections.Generic.IReadOnlyList<PanePoint> polygon)
+    {
+        float twice = 0;
+        for (int i = 0; i < polygon.Count; i++)
+        {
+            var a = polygon[i]; var b = polygon[(i + 1) % polygon.Count];
+            twice += a.X * b.Y - a.Y * b.X;
+        }
+        return Math.Abs(twice) / 2;
     }
 }
