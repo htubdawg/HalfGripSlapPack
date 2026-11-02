@@ -27,13 +27,16 @@ namespace HalfGripSlapPack
 
     internal sealed class MirrorSettings
     {
-        internal readonly ConfigEntry<float> Sensitivity, YawLimit, PitchLimit, Yaw, Pitch;
+        internal readonly ConfigEntry<float> Sensitivity, YawLimit, PitchLimit, Yaw, Pitch, MirrorFOV;
         internal readonly ConfigEntry<bool> IncludeCarInterior;
         private readonly ConfigFile config;
 
         internal MirrorSettings(ConfigFile config)
         {
             this.config = config;
+            MirrorFOV = config.Bind("Mirror", "MirrorFOV", 22f,
+                new ConfigDescription("Rear-view camera vertical field of view in degrees. Lower values zoom in; the original is about 28 degrees.",
+                    new AcceptableValueRange<float>(10f, 60f)));
             IncludeCarInterior = config.Bind("Mirror", "IncludeCarInterior", true,
                 "Include the layers used by the car's 3D cabin models in the rear-view camera. False restores the camera's original layer inclusion.");
             Sensitivity = config.Bind("Mirror", "Sensitivity", 8f,

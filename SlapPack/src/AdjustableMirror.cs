@@ -10,6 +10,7 @@ namespace HalfGripSlapPack
         internal static AdjustableMirror Active { get; private set; }
         internal Grabber Grabber { get; private set; }
         private Camera rearCamera;
+        private float originalFOV;
         private Quaternion originalRotation;
         private Quaternion neutralRotation;
         private Transform visualMirror;
@@ -37,6 +38,7 @@ namespace HalfGripSlapPack
         {
             Grabber = grabber;
             rearCamera = camera;
+            originalFOV = camera.fieldOfView;
             settings = config;
             int interiorLayers = 0;
             CarControllerNew car = camera.GetComponentInParent<CarControllerNew>();
@@ -136,6 +138,7 @@ namespace HalfGripSlapPack
             if (rearCamera)
             {
                 rearCamera.transform.localRotation = neutralRotation * Quaternion.Euler(-adjustment.Pitch, adjustment.Yaw, 0);
+                rearCamera.fieldOfView = settings.MirrorFOV.Value;
                 rearCamera.cullingMask = interiorMask.Apply(rearCamera.cullingMask, settings.IncludeCarInterior.Value);
             }
             if (visualMirror)
@@ -182,6 +185,7 @@ namespace HalfGripSlapPack
             if (rearCamera)
             {
                 rearCamera.transform.localRotation = originalRotation;
+                rearCamera.fieldOfView = originalFOV;
                 rearCamera.cullingMask = interiorMask.Apply(rearCamera.cullingMask, false);
             }
             if (visualMirror)

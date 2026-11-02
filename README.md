@@ -20,6 +20,8 @@ The development `.csproj` and its `bin`/`obj` folders are not needed in the game
   `BepInEx/config/halfgrip.slappack.cfg`; `SavedYaw` and `SavedPitch` store the shared setting across races.
 - Pausing, losing focus, releasing the hand, or switching out of the cockpit cancels an active drag.
 - The mirror stays behind overlapping hand cursor sprites, including hover, hold, and release transitions, as its angle changes.
+- `MirrorFOV = 22` sets the rear-view camera's vertical field of view in degrees (range 10–60). Lower values make the rearward
+  view larger and narrower. The original is about 28 degrees; unloading restores the FOV captured before Slap Pack changed it.
 - `IncludeCarInterior = true` (default) in the CFG's `[Mirror]` section includes the layers used by the car's 3D cabin models in
   the rear-view camera. Set it to `false` to restore the original layer inclusion. This changes the rear-view camera only; it does
   not add the separate 2D cockpit/hand layer. Other geometry sharing the cabin's layer can also appear in the reflection.
@@ -29,6 +31,7 @@ Example in `BepInEx/config/halfgrip.slappack.cfg` (edit while the game is closed
 
 ```ini
 [Mirror]
+MirrorFOV = 22
 IncludeCarInterior = true
 ```
 
@@ -72,6 +75,7 @@ They do not validate Unity input, scene binding, or rendering.
 - Switch to the outside camera and back; restart the race, change tracks, and restart the game. Confirm the setting survives.
 - Try with and without the Smart Mirror upgrade. Disable mods through HalfGripTools and confirm the original view and auto-aim return.
 - Check normal steering, shifting, and other nearby cockpit interactions remain usable.
+- Compare `MirrorFOV = 22` with `28` and confirm only the reflection changes. Confirm disabling Slap Pack restores the original FOV.
 - With `IncludeCarInterior = true`, angle the mirror toward the cabin and check the 3D interior is visible for each car model.
   Repeat with `false` to verify the original layer inclusion. Check the forward camera, hand, and mirror screen remain unchanged,
   and confirm disabling Slap Pack restores the rear-view camera's original layer inclusion.
