@@ -25,8 +25,10 @@ in `BepInEx/LogOutput.log`. The report folder is:
   texture-*.png
 ```
 
-Share that folder for inspection; it contains the complete cabin/car hierarchy, readable mesh vertices/UVs/triangles, and material
-texture previews at up to 1024 pixels. Unreadable meshes are reported rather than modified. These are private game reference assets:
+Share that folder for inspection; it contains the complete cabin/car hierarchy, mesh vertices/UVs/triangles, and material
+texture previews at up to 1024 pixels. Version 0.2.1 also tries a synchronous GPU-buffer read for meshes whose CPU copy was discarded;
+unsupported formats or readback failures are recorded in `geometry.txt`. Shared mesh data and usage flags are never modified.
+These are private game reference assets:
 keep the reports out of the mod repository and distribution archives. The diagnostic does not change shared meshes, materials, or glass.
 Try each car model you want supported, since their doors can differ.
 
@@ -89,10 +91,12 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The twenty-three tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The twenty-six tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Runtime window binding and tint remain pending the geometry report.
+Additional tests check half-precision GPU vertex decoding, including subnormal and invalid values. These tests do not exercise Unity's
+GPU readback API; that path requires an in-game diagnostic run.
 They do not validate Unity input, scene binding, or rendering.
 
 ## In-game acceptance checks

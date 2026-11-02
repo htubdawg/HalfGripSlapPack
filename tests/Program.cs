@@ -176,6 +176,27 @@ internal static class Program
             window.Turn(360, float.PositiveInfinity);
             Equal(0, window.OpenFraction);
         });
+        Check("Half-precision mesh coordinates decode signed normal values", () =>
+        {
+            Equal(1, MeshBufferData.HalfToSingle(0x3c00));
+            Equal(-2, MeshBufferData.HalfToSingle(0xc000));
+            Equal(0.5f, MeshBufferData.HalfToSingle(0x3800));
+            Equal(65504, MeshBufferData.HalfToSingle(0x7bff));
+        });
+        Check("Half-precision mesh coordinates preserve zero and subnormals", () =>
+        {
+            Equal(0, MeshBufferData.HalfToSingle(0));
+            Equal(0, MeshBufferData.HalfToSingle(0x8000));
+            if (MeshBufferData.HalfToSingle(1) != 1f / 16777216f)
+                throw new Exception("Small mesh coordinates were lost.");
+        });
+        Check("Invalid half-precision coordinates remain identifiable", () =>
+        {
+            if (!float.IsPositiveInfinity(MeshBufferData.HalfToSingle(0x7c00)) ||
+                !float.IsNegativeInfinity(MeshBufferData.HalfToSingle(0xfc00)) ||
+                !float.IsNaN(MeshBufferData.HalfToSingle(0x7c01)))
+                throw new Exception("Invalid GPU coordinate was masked.");
+        });
         Console.WriteLine(passed + " tests passed.");
     }
 }

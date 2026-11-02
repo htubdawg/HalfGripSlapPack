@@ -1,7 +1,7 @@
 {
   "id": "slappack",
   "name": "Slap Pack",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "htubdawg",
   "description": "Adjustable rear-view mirror plus window-crank development diagnostics. Window interaction is not yet connected.",
   "gameVersion": "0.418",

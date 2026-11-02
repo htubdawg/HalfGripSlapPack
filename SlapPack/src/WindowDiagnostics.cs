@@ -61,14 +61,15 @@ namespace HalfGripSlapPack
             text.AppendLine("Car: " + car.name);
             text.AppendLine("TRS are local to the parent. Mesh car coordinates use the player's CarControllerNew transform.");
             var textures = new HashSet<Texture>();
+            var meshes = new Dictionary<Mesh, MeshSnapshot>();
             var roots = new List<Transform> { cockpit, car.transform };
-            foreach (Transform root in roots) Describe(root, car.transform, "", text, textures, folder);
+            foreach (Transform root in roots) Describe(root, car.transform, "", text, textures, meshes, folder);
             File.WriteAllText(Path.Combine(folder, "geometry.txt"), text.ToString());
             context.Log.LogInfo("Window-crank geometry report written to " + folder);
         }
 
         private static void Describe(Transform node, Transform car, string indent, StringBuilder text,
-            HashSet<Texture> textures, string folder)
+            HashSet<Texture> textures, Dictionary<Mesh, MeshSnapshot> meshes, string folder)
         {
             text.AppendLine(indent + node.name + " active=" + node.gameObject.activeSelf + " layer=" + LayerMask.LayerToName(node.gameObject.layer)
                 + " position=" + V(node.localPosition) + " rotation=" + V(node.localEulerAngles) + " scale=" + V(node.localScale));
@@ -85,16 +86,19 @@ namespace HalfGripSlapPack
                     + " bounds=" + V(mesh.bounds.center) + "/" + V(mesh.bounds.size));
                 try
                 {
-                    if (mesh.isReadable)
+                    if (!meshes.TryGetValue(mesh, out MeshSnapshot snapshot))
                     {
-                        Vector3[] vertices = mesh.vertices;
-                        Vector2[] uv = mesh.uv;
-                        for (int i = 0; i < vertices.Length; i++)
-                            text.AppendLine(indent + "    v" + i + " local=" + V(vertices[i]) + " car=" + V(car.InverseTransformPoint(node.TransformPoint(vertices[i])))
-                                + (i < uv.Length ? " uv=" + F(uv[i].x) + "," + F(uv[i].y) : ""));
-                        for (int i = 0; i < mesh.subMeshCount; i++)
-                            text.AppendLine(indent + "    submesh" + i + " triangles=" + string.Join(",", mesh.GetTriangles(i)));
+                        snapshot = MeshSnapshot.Read(mesh);
+                        meshes.Add(mesh, snapshot);
                     }
+                    text.AppendLine(indent + "  mesh data source=" + (mesh.isReadable ? "CPU" : "GPU"));
+                    Vector3[] vertices = snapshot.Vertices;
+                    Vector2[] uv = snapshot.UV;
+                    for (int i = 0; i < vertices.Length; i++)
+                        text.AppendLine(indent + "    v" + i + " local=" + V(vertices[i]) + " car=" + V(car.InverseTransformPoint(node.TransformPoint(vertices[i])))
+                            + (i < uv.Length ? " uv=" + F(uv[i].x) + "," + F(uv[i].y) : ""));
+                    for (int i = 0; i < snapshot.Triangles.Length; i++)
+                        text.AppendLine(indent + "    submesh" + i + " triangles=" + string.Join(",", snapshot.Triangles[i]));
                 }
                 catch (Exception error) { text.AppendLine(indent + "  Mesh data unavailable: " + error.Message); }
             }
@@ -112,7 +116,7 @@ namespace HalfGripSlapPack
                     try { SaveTexture(texture, Path.Combine(folder, name)); }
                     catch (Exception error) { text.AppendLine(indent + "  Texture preview unavailable: " + error.Message); }
                 }
-            for (int i = 0; i < node.childCount; i++) Describe(node.GetChild(i), car, indent + "  ", text, textures, folder);
+            for (int i = 0; i < node.childCount; i++) Describe(node.GetChild(i), car, indent + "  ", text, textures, meshes, folder);
         }
 
         private static void SaveTexture(Texture source, string file)
