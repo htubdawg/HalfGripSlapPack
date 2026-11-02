@@ -1,0 +1,9 @@
+{
+  "id": "slappack",
+  "name": "Slap Pack",
+  "version": "0.1.0",
+  "author": "htubdawg",
+  "description": "More things to interact with in your car. Prototype: grab the rear-view mirror to adjust it; right-click to reset.",
+  "gameVersion": "0.418",
+  "tools": "1.0.6"
+}
