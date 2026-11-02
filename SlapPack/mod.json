@@ -1,9 +1,9 @@
 {
   "id": "slappack",
   "name": "Slap Pack",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "author": "htubdawg",
-  "description": "More things to interact with in your car. Prototype: grab the rear-view mirror to adjust it; right-click to reset.",
+  "description": "Adjustable rear-view mirror plus window-crank development diagnostics. Window interaction is not yet connected.",
   "gameVersion": "0.418",
   "tools": "1.0.6"
 }

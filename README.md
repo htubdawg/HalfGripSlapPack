@@ -3,6 +3,40 @@ A collection of new things to interact with in your car.
 
 Planned features: adjustable rear-view mirror, turn signals, windshield wipers, and working window cranks.
 
+## Window-crank development branch
+
+`test/window-cranks` starts from the working mirror branch. This first window build adds a tested, independent travel model for
+each door and a runtime geometry report. **The cranks are not yet connected to interaction, and no tint or window animation is applied yet.**
+
+The target is to reuse the driver's and passenger's existing cranks, with circular hand movement, approximately three turns for full
+travel, and windows initially fully raised. Both door panes will receive a very light glass tint so their upper edge is visible as they
+lower. The windshield will remain unchanged. Tint strength and the exact travel will be tuned against the actual geometry.
+
+The available reference dumps collapse generic interior meshes and do not identify separate crank objects. They also lack vertex/UV
+data needed to split door glass from a combined windshield/window mesh. A live geometry report is needed to decide whether the cranks
+are separate meshes or artwork baked into the door texture, and to bind the correct panes without guessing positions.
+
+To collect it, install this build as below, start a race, and wait a few seconds. Look for `Window-crank geometry report written to`
+in `BepInEx/LogOutput.log`. The report folder is:
+
+```text
+<game>/BepInEx/SlapPack/WindowDiagnostics/<scene>-<timestamp>/
+  geometry.txt
+  texture-*.png
+```
+
+Share that folder for inspection; it contains the complete cabin/car hierarchy, readable mesh vertices/UVs/triangles, and material
+texture previews at up to 1024 pixels. Unreadable meshes are reported rather than modified. These are private game reference assets:
+keep the reports out of the mod repository and distribution archives. The diagnostic does not change shared meshes, materials, or glass.
+Try each car model you want supported, since their doors can differ.
+
+The diagnostic runs once per spawned player car. To stop generating reports, set this in `BepInEx/config/halfgrip.slappack.cfg`:
+
+```ini
+[Windows]
+WriteGeometryReport = false
+```
+
 The first prototype implements the adjustable **interior rear-view mirror** for Half Grip **0.418**, using **HalfGripTools 1.0.6+**.
 It compiles against the game's reference assemblies; in-game behavior is still awaiting validation.
 
@@ -55,8 +89,10 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The sixteen tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The twenty-three tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
+The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
+and invalid input. Runtime window binding and tint remain pending the geometry report.
 They do not validate Unity input, scene binding, or rendering.
 
 ## In-game acceptance checks

@@ -116,6 +116,66 @@ internal static class Program
             int changed = (mask.Apply(1, true) & ~1) | (1 << 10);
             Equal(1 << 10, mask.Apply(changed, false));
         });
+        Check("Window starts raised and lowers proportionally to crank turns", () =>
+        {
+            var window = new WindowTravel();
+            Equal(0, window.OpenFraction);
+            window.Turn(360, 3);
+            Equal(1f / 3, window.OpenFraction);
+            window.Turn(360, 3);
+            window.Turn(360, 3);
+            Equal(1, window.OpenFraction);
+        });
+        Check("Reversing the crank raises a partially lowered window", () =>
+        {
+            var window = new WindowTravel();
+            window.Turn(540, 3);
+            window.Turn(-270, 3);
+            Equal(0.25f, window.OpenFraction);
+        });
+        Check("Window stops have no accumulated windup", () =>
+        {
+            var window = new WindowTravel();
+            window.Turn(10000, 3);
+            window.Turn(-108, 3);
+            Equal(0.9f, window.OpenFraction);
+            window.Turn(-10000, 3);
+            window.Turn(108, 3);
+            Equal(0.1f, window.OpenFraction);
+        });
+        Check("Driver and passenger window travel is independent", () =>
+        {
+            var driver = new WindowTravel();
+            var passenger = new WindowTravel();
+            driver.Turn(540, 3);
+            Equal(0.5f, driver.OpenFraction);
+            Equal(0, passenger.OpenFraction);
+        });
+        Check("Crank movement unwraps the angular seam in both directions", () =>
+        {
+            Equal(2, WindowTravel.AngularDelta(179, -179));
+            Equal(-2, WindowTravel.AngularDelta(-179, 179));
+        });
+        Check("Repeated wrapped revolutions produce continuous travel", () =>
+        {
+            var window = new WindowTravel();
+            float previous = 0;
+            for (int i = 1; i <= 24; i++)
+            {
+                float angle = (i * 45 + 180) % 360 - 180;
+                window.Turn(WindowTravel.AngularDelta(previous, angle), 3);
+                previous = angle;
+            }
+            Equal(1, window.OpenFraction);
+        });
+        Check("Invalid crank parameters cannot corrupt travel", () =>
+        {
+            var window = new WindowTravel();
+            window.Turn(float.NaN, 3);
+            window.Turn(360, 0);
+            window.Turn(360, float.PositiveInfinity);
+            Equal(0, window.OpenFraction);
+        });
         Console.WriteLine(passed + " tests passed.");
     }
 }

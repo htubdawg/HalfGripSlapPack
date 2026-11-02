@@ -9,5 +9,6 @@
     <Compile Include="../SlapPack/src/MirrorAdjustment.cs" Link="MirrorAdjustment.cs" />
     <Compile Include="../SlapPack/src/HandDepth.cs" Link="HandDepth.cs" />
     <Compile Include="../SlapPack/src/MirrorCullingMask.cs" Link="MirrorCullingMask.cs" />
+    <Compile Include="../SlapPack/src/WindowTravel.cs" Link="WindowTravel.cs" />
   </ItemGroup>
 </Project>

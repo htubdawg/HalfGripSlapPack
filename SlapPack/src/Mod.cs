@@ -14,6 +14,7 @@ namespace HalfGripSlapPack
             host = new GameObject("SlapPack.Mirrors");
             Object.DontDestroyOnLoad(host);
             host.AddComponent<MirrorInstaller>().Initialize(ctx);
+            host.AddComponent<WindowDiagnostics>().Initialize(ctx);
         }
 
         public override void Unload()
