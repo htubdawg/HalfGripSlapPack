@@ -14,7 +14,8 @@ The development `.csproj` and its `bin`/`obj` folders are not needed in the game
 
 - In the cockpit, grab the mirror casing with the normal hand/grab control and drag. The casing and glass tilt together
   around the top mount, moving the mirror's center and adjusting the rearward view. Its grab hitbox follows the visible mirror.
-- Release to retain and save the adjustment. Right-click while hovering over or holding the mirror to reset both axes.
+- Release to retain and save the adjustment, leaving the hand cursor at the mirror's grip point. Right-click while hovering over
+  or holding the mirror to reset both axes.
 - Defaults allow 30 degrees horizontally and 20 degrees vertically. Sensitivity and limits are configurable in
   `BepInEx/config/halfgrip.slappack.cfg`; `SavedYaw` and `SavedPitch` store the shared setting across races.
 - Pausing, losing focus, releasing the hand, or switching out of the cockpit cancels an active drag.
@@ -51,6 +52,8 @@ They do not validate Unity input, scene binding, or rendering.
   held hand follow the mirror at all four adjustment extremes, and that repeated drags do not drift when the housing tilts.
 - Reach each stop and reverse direction; adjustment should respond immediately without a dead zone.
 - Release, grab again, and right-click reset both while hovering and while holding. Check for jumps or drifting.
+- Drag well beyond an adjustment stop, then release. Confirm the hand remains at its visible grip instead of jumping to the hidden
+  input cursor, and that the next small mouse movement starts from that location. Repeat with a normal drag and after resetting while held.
 - Pause or lose focus during a drag, release the button, then return. Confirm no stuck hand or continued adjustment.
 - Switch to the outside camera and back; restart the race, change tracks, and restart the game. Confirm the setting survives.
 - Try with and without the Smart Mirror upgrade. Disable mods through HalfGripTools and confirm the original view and auto-aim return.

@@ -43,7 +43,9 @@ namespace HalfGripSlapPack
             adjustment = new MirrorAdjustment(config.Yaw.Value, config.Pitch.Value);
             adjustment.Move(0, 0, 1, config.YawLimit.Value, config.PitchLimit.Value);
             keepPhysicalCursorClose = false;
-            releaseCursorBlend = 1f;
+            // Input keeps travelling while the visible hand holds the mirror. On release, let the
+            // native Grabber rebase its cursor at the grip, not at that accumulated input position.
+            releaseCursorBlend = 0f;
             directSpeedKeptOnRelease = 0f;
             foreach (SmartMirror smart in Object.FindObjectsByType<SmartMirror>(FindObjectsSortMode.None))
             {
