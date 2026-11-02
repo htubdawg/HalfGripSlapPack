@@ -28,11 +28,14 @@ namespace HalfGripSlapPack
     internal sealed class MirrorSettings
     {
         internal readonly ConfigEntry<float> Sensitivity, YawLimit, PitchLimit, Yaw, Pitch;
+        internal readonly ConfigEntry<bool> IncludeCarInterior;
         private readonly ConfigFile config;
 
         internal MirrorSettings(ConfigFile config)
         {
             this.config = config;
+            IncludeCarInterior = config.Bind("Mirror", "IncludeCarInterior", true,
+                "Include the layers used by the car's 3D cabin models in the rear-view camera. False restores the camera's original layer inclusion.");
             Sensitivity = config.Bind("Mirror", "Sensitivity", 8f,
                 new ConfigDescription("Degrees per unit of cockpit hand movement.", new AcceptableValueRange<float>(0.1f, 40f)));
             YawLimit = config.Bind("Mirror", "HorizontalLimit", 30f,

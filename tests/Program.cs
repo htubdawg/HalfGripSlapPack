@@ -94,6 +94,28 @@ internal static class Program
             Equal(0.15f, HandDepth.InFrontOfMirror(8, 8, 0.1f, 0.1f));
             Equal(0.12f, HandDepth.InFrontOfMirror(0.12f, 0.12f, 0.1f, 0.1f));
         });
+        Check("Interior inclusion adds the required camera layers", () =>
+        {
+            var mask = new MirrorCullingMask(1, 1 << 8);
+            Equal(1 | (1 << 8), mask.Apply(1, true));
+        });
+        Check("Disabling restores the original mask after enabling", () =>
+        {
+            var mask = new MirrorCullingMask(1, (1 << 8) | (1 << 9));
+            Equal(1, mask.Apply(mask.Apply(1, true), false));
+        });
+        Check("Interior layers present before the mod are preserved on restore", () =>
+        {
+            int original = 1 | (1 << 8);
+            var mask = new MirrorCullingMask(original, (1 << 8) | (1 << 9));
+            Equal(original, mask.Apply(mask.Apply(original, true), false));
+        });
+        Check("Unrelated camera layer changes survive toggling", () =>
+        {
+            var mask = new MirrorCullingMask(1, 1 << 8);
+            int changed = (mask.Apply(1, true) & ~1) | (1 << 10);
+            Equal(1 << 10, mask.Apply(changed, false));
+        });
         Console.WriteLine(passed + " tests passed.");
     }
 }

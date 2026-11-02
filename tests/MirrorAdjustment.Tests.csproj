@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="../SlapPack/src/MirrorAdjustment.cs" Link="MirrorAdjustment.cs" />
     <Compile Include="../SlapPack/src/HandDepth.cs" Link="HandDepth.cs" />
+    <Compile Include="../SlapPack/src/MirrorCullingMask.cs" Link="MirrorCullingMask.cs" />
   </ItemGroup>
 </Project>

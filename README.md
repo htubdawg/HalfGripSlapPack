@@ -20,7 +20,17 @@ The development `.csproj` and its `bin`/`obj` folders are not needed in the game
   `BepInEx/config/halfgrip.slappack.cfg`; `SavedYaw` and `SavedPitch` store the shared setting across races.
 - Pausing, losing focus, releasing the hand, or switching out of the cockpit cancels an active drag.
 - The mirror stays behind overlapping hand cursor sprites, including hover, hold, and release transitions, as its angle changes.
+- `IncludeCarInterior = true` (default) in the CFG's `[Mirror]` section includes the layers used by the car's 3D cabin models in
+  the rear-view camera. Set it to `false` to restore the original layer inclusion. This changes the rear-view camera only; it does
+  not add the separate 2D cockpit/hand layer. Other geometry sharing the cabin's layer can also appear in the reflection.
 - If the Smart Mirror upgrade is active, manual adjustment suspends its auto-aim. Auto-aim resumes when Slap Pack unloads.
+
+Example in `BepInEx/config/halfgrip.slappack.cfg` (edit while the game is closed, then restart):
+
+```ini
+[Mirror]
+IncludeCarInterior = true
+```
 
 The mirror surface tilts by half the camera adjustment angle, approximating how reflection doubles the change in viewing direction.
 Right-click reset restores both its original pose and view. Unloading also restores the original hierarchy and removes the added hitbox.
@@ -42,8 +52,8 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The twelve tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
-and hand depth clearance as the mirror approaches or recedes, including sprite depth and near clipping.
+The sixteen tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 They do not validate Unity input, scene binding, or rendering.
 
 ## In-game acceptance checks
@@ -62,6 +72,9 @@ They do not validate Unity input, scene binding, or rendering.
 - Switch to the outside camera and back; restart the race, change tracks, and restart the game. Confirm the setting survives.
 - Try with and without the Smart Mirror upgrade. Disable mods through HalfGripTools and confirm the original view and auto-aim return.
 - Check normal steering, shifting, and other nearby cockpit interactions remain usable.
+- With `IncludeCarInterior = true`, angle the mirror toward the cabin and check the 3D interior is visible for each car model.
+  Repeat with `false` to verify the original layer inclusion. Check the forward camera, hand, and mirror screen remain unchanged,
+  and confirm disabling Slap Pack restores the rear-view camera's original layer inclusion.
 
 Compile checks and the adjustment tests pass in the cloud environment. The camera-only prototype has been reported working in-game;
 the moving housing/glass update still needs an in-game playtest. The game runtime is not available here, so visual alignment, clipping,

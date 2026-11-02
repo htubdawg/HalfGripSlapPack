@@ -19,6 +19,7 @@ namespace HalfGripSlapPack
         private Vector3 localGrip;
         private SpriteRenderer[] mirrorSprites;
         private SpriteRenderer[] handSprites;
+        private MirrorCullingMask interiorMask;
         private MirrorSettings settings;
         private MirrorAdjustment adjustment;
         private Vector2 previousHand;
@@ -37,6 +38,17 @@ namespace HalfGripSlapPack
             Grabber = grabber;
             rearCamera = camera;
             settings = config;
+            int interiorLayers = 0;
+            CarControllerNew car = camera.GetComponentInParent<CarControllerNew>();
+            CameraSwitch cameraSwitch = car ? car.GetComponent<CameraSwitch>() : null;
+            if (cameraSwitch && cameraSwitch.interiorModels != null)
+                foreach (Transform model in cameraSwitch.interiorModels)
+                    if (model)
+                        foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
+                            interiorLayers |= 1 << renderer.gameObject.layer;
+            interiorMask = new MirrorCullingMask(camera.cullingMask, interiorLayers);
+            if (interiorLayers == 0)
+                log.LogWarning("No 3D cabin model layers found; IncludeCarInterior cannot add them to the mirror camera.");
             originalRotation = camera.transform.localRotation;
             neutralRotation = originalRotation;
             visualMirror = housing;
@@ -122,7 +134,10 @@ namespace HalfGripSlapPack
         {
             if (restored || adjustment == null) return;
             if (rearCamera)
+            {
                 rearCamera.transform.localRotation = neutralRotation * Quaternion.Euler(-adjustment.Pitch, adjustment.Yaw, 0);
+                rearCamera.cullingMask = interiorMask.Apply(rearCamera.cullingMask, settings.IncludeCarInterior.Value);
+            }
             if (visualMirror)
             {
                 // A reflected view turns about twice as far as the mirror surface. Pivot the complete
@@ -164,7 +179,11 @@ namespace HalfGripSlapPack
             restored = true;
             if (Active == this) Active = null;
             if (IsGrabbed) Release();
-            if (rearCamera) rearCamera.transform.localRotation = originalRotation;
+            if (rearCamera)
+            {
+                rearCamera.transform.localRotation = originalRotation;
+                rearCamera.cullingMask = interiorMask.Apply(rearCamera.cullingMask, false);
+            }
             if (visualMirror)
             {
                 visualMirror.localPosition = originalMirrorPosition;
