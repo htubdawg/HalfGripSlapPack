@@ -11,25 +11,35 @@ namespace HalfGripSlapPack
         private Camera rearCamera;
         private Quaternion originalRotation;
         private Quaternion neutralRotation;
+        private Transform visualMirror;
+        private Vector3 originalMirrorPosition;
+        private Quaternion originalMirrorRotation;
+        private Vector3 scaledMount;
+        private Vector3 localGrip;
         private MirrorSettings settings;
         private MirrorAdjustment adjustment;
         private Vector2 previousHand;
         private readonly List<SmartMirror> suspended = new List<SmartMirror>();
         private bool restored;
 
-        internal bool IsBound => Grabber && rearCamera;
+        internal bool IsBound => Grabber && rearCamera && visualMirror;
 
         internal bool CanInteract => Grabber && Grabber.isActiveAndEnabled && Grabber.viewCamera &&
             Grabber.viewCamera.isActiveAndEnabled && rearCamera && rearCamera.isActiveAndEnabled &&
             Application.isFocused && !GameInput.Muted && Time.timeScale > 0f;
 
-        internal void Initialize(Grabber grabber, Camera camera, MirrorSettings config, ManualLogSource log)
+        internal void Initialize(Grabber grabber, Camera camera, Transform housing, Vector3 mount,
+            MirrorSettings config, ManualLogSource log)
         {
             Grabber = grabber;
             rearCamera = camera;
             settings = config;
             originalRotation = camera.transform.localRotation;
             neutralRotation = originalRotation;
+            visualMirror = housing;
+            originalMirrorPosition = housing.localPosition;
+            originalMirrorRotation = housing.localRotation;
+            scaledMount = Vector3.Scale(housing.localScale, mount);
             adjustment = new MirrorAdjustment(config.Yaw.Value, config.Pitch.Value);
             adjustment.Move(0, 0, 1, config.YawLimit.Value, config.PitchLimit.Value);
             keepPhysicalCursorClose = false;
@@ -53,6 +63,15 @@ namespace HalfGripSlapPack
         {
             previousHand = constrainedPoint;
             if (!CanInteract) CancelDrag();
+            else
+            {
+                // Track the actual touched point on the moving housing for the native hand indicator.
+                Ray ray = Grabber.viewCamera.ScreenPointToRay(Grabber.cursor);
+                Vector3 grip = attachedCollider.RaycastPlane(ray, out Vector2 point, out float distance)
+                    ? attachedCollider.PlaneToWorld(point) : GripWorldPoint();
+                localGrip = visualMirror.InverseTransformPoint(grip);
+                UpdateGrip();
+            }
         }
 
         protected override void OnHandMoved()
@@ -78,7 +97,7 @@ namespace HalfGripSlapPack
 
         protected override void Update()
         {
-            // Do not run Grabbable's physics: the mirror housing stays fixed in this prototype.
+            // Pose comes from bounded adjustment, rather than Grabbable's physics/spring positioning.
             if (IsGrabbed && (!CanInteract || !GameInput.Hand(0))) CancelDrag();
         }
 
@@ -89,8 +108,24 @@ namespace HalfGripSlapPack
 
         private void ApplyView()
         {
-            if (!restored && rearCamera && adjustment != null)
+            if (restored || adjustment == null) return;
+            if (rearCamera)
                 rearCamera.transform.localRotation = neutralRotation * Quaternion.Euler(-adjustment.Pitch, adjustment.Yaw, 0);
+            if (visualMirror)
+            {
+                // A reflected view turns about twice as far as the mirror surface. Pivot the complete
+                // housing/glass assembly about its top mount, translating its center as it tilts.
+                Quaternion tilt = Quaternion.Euler(adjustment.Pitch * 0.5f, adjustment.Yaw * 0.5f, 0);
+                Quaternion rotation = originalMirrorRotation * tilt;
+                visualMirror.localRotation = rotation;
+                visualMirror.localPosition = originalMirrorPosition + originalMirrorRotation * scaledMount - rotation * scaledMount;
+                if (IsGrabbed) UpdateGrip();
+            }
+        }
+
+        private void UpdateGrip()
+        {
+            grabbedPoint = WorldToPlane(visualMirror.TransformPoint(localGrip)) - position;
         }
 
         private void CancelDrag()
@@ -111,6 +146,11 @@ namespace HalfGripSlapPack
             restored = true;
             if (IsGrabbed) Release();
             if (rearCamera) rearCamera.transform.localRotation = originalRotation;
+            if (visualMirror)
+            {
+                visualMirror.localPosition = originalMirrorPosition;
+                visualMirror.localRotation = originalMirrorRotation;
+            }
             foreach (SmartMirror smart in suspended) if (smart) smart.enabled = true;
             suspended.Clear();
         }

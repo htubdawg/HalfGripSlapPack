@@ -12,15 +12,17 @@ Copy the `SlapPack` folder into `<game>/BepInEx/HalfGripMods/` alongside your ot
 `HalfGripMods/SlapPack/mod.json` and `HalfGripMods/SlapPack/src/*.cs`. HalfGripTools compiles the source when the game starts.
 The development `.csproj` and its `bin`/`obj` folders are not needed in the game. Restart the game after changing source.
 
-- In the cockpit, grab the mirror casing with the normal hand/grab control and drag to adjust the rearward view.
+- In the cockpit, grab the mirror casing with the normal hand/grab control and drag. The casing and glass tilt together
+  around the top mount, moving the mirror's center and adjusting the rearward view. Its grab hitbox follows the visible mirror.
 - Release to retain and save the adjustment. Right-click while hovering over or holding the mirror to reset both axes.
 - Defaults allow 30 degrees horizontally and 20 degrees vertically. Sensitivity and limits are configurable in
   `BepInEx/config/halfgrip.slappack.cfg`; `SavedYaw` and `SavedPitch` store the shared setting across races.
 - Pausing, losing focus, releasing the hand, or switching out of the cockpit cancels an active drag.
 - If the Smart Mirror upgrade is active, manual adjustment suspends its auto-aim. Auto-aim resumes when Slap Pack unloads.
 
-This first version changes the camera view while keeping the existing casing and glass sprites fixed. Mirror housing animation,
-additional visual hints, and the other planned controls are not implemented yet. HalfGripTools does not load gameplay mods in speedrun mode.
+The mirror surface tilts by half the camera adjustment angle, approximating how reflection doubles the change in viewing direction.
+Right-click reset restores both its original pose and view. Unloading also restores the original hierarchy and removes the added hitbox.
+Additional visual hints and the other planned controls are not implemented yet. HalfGripTools does not load gameplay mods in speedrun mode.
 
 ## Build and check
 
@@ -45,6 +47,8 @@ They do not validate Unity input, scene binding, or rendering.
 
 - Start a race and confirm the log reports `Adjustable mirror attached` once for the cockpit.
 - Drag each axis independently. Confirm the view moves in the expected direction and the hand targets the mirror only.
+- Confirm the casing and glass move together around the fixed top mount, with no separation or clipping. Check that the hitbox and
+  held hand follow the mirror at all four adjustment extremes, and that repeated drags do not drift when the housing tilts.
 - Reach each stop and reverse direction; adjustment should respond immediately without a dead zone.
 - Release, grab again, and right-click reset both while hovering and while holding. Check for jumps or drifting.
 - Pause or lose focus during a drag, release the button, then return. Confirm no stuck hand or continued adjustment.
@@ -52,5 +56,6 @@ They do not validate Unity input, scene binding, or rendering.
 - Try with and without the Smart Mirror upgrade. Disable mods through HalfGripTools and confirm the original view and auto-aim return.
 - Check normal steering, shifting, and other nearby cockpit interactions remain usable.
 
-Compile checks and the adjustment tests pass in the cloud environment. All in-game acceptance checks remain unrun because the game runtime
-is not available here. Direction, hitbox size, and sensitivity should be tuned from that first playtest.
+Compile checks and the adjustment tests pass in the cloud environment. The camera-only prototype has been reported working in-game;
+the moving housing/glass update still needs an in-game playtest. The game runtime is not available here, so visual alignment, clipping,
+hand tracking, and reset/unload behavior must be checked in that playtest.

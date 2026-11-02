@@ -9,6 +9,9 @@ namespace HalfGripSlapPack
         private MirrorSettings settings;
         private AdjustableMirror mirror;
         private GameObject hitTarget;
+        private GameObject interactionRoot;
+        private Transform mirrorRoot;
+        private Transform originalParent;
         private float nextScan;
 
         internal void Initialize(ModContext ctx)
@@ -55,7 +58,14 @@ namespace HalfGripSlapPack
                             sprite.transform.parent.name == "RearViewMirror") casing = sprite;
                 }
                 if (!rearCamera || !casing) continue;
-                // A separate child keeps the authored mirror sprites and their components untouched.
+                // Keep Grabbable's movement plane fixed while the visible mirror and its hitbox tilt.
+                // A common, stationary ancestor also lets the native Grabber find our Grabbable.
+                mirrorRoot = casing.transform.parent;
+                originalParent = mirrorRoot.parent;
+                interactionRoot = new GameObject("SlapPack.MirrorInteraction");
+                interactionRoot.layer = casing.gameObject.layer;
+                interactionRoot.transform.SetParent(originalParent, false);
+                mirrorRoot.SetParent(interactionRoot.transform, false);
                 hitTarget = new GameObject("SlapPack.MirrorGrip");
                 hitTarget.layer = casing.gameObject.layer;
                 hitTarget.transform.SetParent(casing.transform, false);
@@ -64,9 +74,11 @@ namespace HalfGripSlapPack
                 collider.width = casing.sprite.bounds.size.x;
                 collider.height = casing.sprite.bounds.size.y;
                 collider.hitBoxExpand = 0.05f;
-                mirror = hitTarget.AddComponent<AdjustableMirror>();
+                mirror = interactionRoot.AddComponent<AdjustableMirror>();
                 mirror.attachedCollider = collider;
-                mirror.Initialize(grabber, rearCamera, settings, context.Log);
+                Vector3 mount = mirrorRoot.InverseTransformPoint(casing.transform.TransformPoint(
+                    new Vector3(casing.sprite.bounds.center.x, casing.sprite.bounds.max.y, 0)));
+                mirror.Initialize(grabber, rearCamera, mirrorRoot, mount, settings, context.Log);
                 context.Log.LogInfo("Adjustable mirror attached. Grab and drag to aim; right-click to reset.");
                 return;
             }
@@ -75,10 +87,16 @@ namespace HalfGripSlapPack
         internal void RemoveMirror()
         {
             if (mirror) mirror.Restore();
+            // Restore the authored hierarchy before destroying our interaction wrapper.
+            if (mirrorRoot) mirrorRoot.SetParent(originalParent, false);
             // Remove the hitbox from the game's registry immediately, before deferred destruction.
             if (hitTarget) { hitTarget.SetActive(false); Object.Destroy(hitTarget); }
+            if (interactionRoot) { interactionRoot.SetActive(false); Object.Destroy(interactionRoot); }
             mirror = null;
             hitTarget = null;
+            interactionRoot = null;
+            mirrorRoot = null;
+            originalParent = null;
         }
 
         private void OnDestroy() { RemoveMirror(); }
