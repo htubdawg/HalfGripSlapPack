@@ -232,6 +232,7 @@ internal static class Program
             if (hull.Count != 4) throw new Exception("Triangle seams survived in the pane outline.");
             Equal(2, Area(hull));
         });
+        TurnSignalTests.Run(Check);
         Console.WriteLine(passed + " tests passed.");
     }
 

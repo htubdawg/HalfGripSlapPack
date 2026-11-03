@@ -1,7 +1,55 @@
 # HalfGripSlapPack
 A collection of new things to interact with in your car.
 
-Planned features: adjustable rear-view mirror, turn signals, windshield wipers, and working window cranks.
+Features in development: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers.
+
+## Turn-signal prototype
+
+Version **0.4.0** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
+steering column, two green cockpit arrows above the gauges inside the wheel rim, and synchronized amber overlays at the stock front/rear
+lamp locations. **Control placement and rendering still need an in-game playtest.**
+
+Grab the stalk's end with the normal hand control and move it vertically:
+
+- **Down = left; up = right.** Halfway starts the signal without latching.
+- A quick halfway tap returns the stalk to neutral on release and completes three flashes total. Holding halfway keeps blinking
+  beyond that count; release then ends the signal. Releasing early finishes the remaining flashes.
+- Full travel latches the signal and keeps the stalk at that end after release. Pull it back to neutral to cancel manually.
+- Automatic cancellation requires steering into the indicated turn, actual forward travel and heading change, then steering returning
+  near center. Turning the wheel while parked does not cancel. Holding the stalk manually prevents automatic return until release.
+
+Cockpit arrows blink with the exterior overlays, which are attached alongside the existing lamp meshes. The original headlights,
+brake-light materials, steering, and car physics are not modified. The stalk stays fixed to the column rather than spinning with the wheel.
+Signals continue in the outside view while the interior stalk/arrows are hidden. Changing bodies rebuilds the exterior overlays.
+Disabling Slap Pack removes the stalk, arrows, and overlays. The first prototype is local only: it does not replicate signals to remote
+multiplayer cars and does not add a clicking sound or hazards.
+
+Settings in `BepInEx/config/halfgrip.slappack.cfg` (restart after changing timing/thresholds):
+
+```ini
+[TurnSignals]
+Enabled = true
+ShortFlashes = 3
+BlinkHalfPeriod = 0.4
+CancelArmSteering = 12
+CancelCenteredSteering = 4
+CancelMinimumTurn = 15
+```
+
+`BlinkHalfPeriod` is seconds for each on/off phase (0.4 gives 75 flashes/minute). Steering and heading thresholds are degrees.
+Cancellation requires forward speed above 1 game unit/second. Custom bodies without recognized lamp meshes retain the cockpit indicators
+and log a warning about missing exterior locations.
+
+### Turn-signal playtest
+
+- Confirm the stalk emerges from the left of the column, stays clear of the wheel rim, and can be grabbed without steering the wheel.
+- Check both halfway tap directions give three flashes and return to neutral. Hold each halfway for several seconds, then release.
+- Check full down/up latches until manually centered, and that all cockpit/exterior lamps blink on the correct side in sync.
+- Drive left and right turns, recenter steering, and confirm the stalk and lamps cancel. Repeat wheel movement while parked and confirm
+  it stays latched. If cancellation feels too early/late, report the turn and configured thresholds.
+- Check the green arrows fit the instrument cluster without covering the gauges; placement is based on the stock cockpit screenshot.
+- Switch camera views and body models, pause/lose focus while holding the stalk, and disable Slap Pack to check cleanup.
+- Check mirror, window cranks, shifting, braking, headlights, and their hand indicators still behave normally.
 
 ## Window-crank development branch
 
@@ -106,12 +154,14 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The thirty tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The fifty-one tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
 Additional tests check half-precision GPU vertex decoding, including subnormal and invalid values. These tests do not exercise Unity's
 GPU readback API; that path requires an in-game diagnostic run.
+Turn-signal tests cover direction mapping, exact short-flash completion, held-half behavior, full detents, manual cancellation, side
+changes, blink timing, left/right turn completion, parked/opposite-turn rejection, held cancellation override, and invalid inputs/settings.
 
 ## Window prototype playtest
 

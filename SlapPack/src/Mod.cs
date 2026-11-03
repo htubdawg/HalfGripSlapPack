@@ -16,6 +16,7 @@ namespace HalfGripSlapPack
             host.AddComponent<MirrorInstaller>().Initialize(ctx);
             host.AddComponent<WindowDiagnostics>().Initialize(ctx);
             host.AddComponent<WindowInstaller>().Initialize(ctx);
+            host.AddComponent<TurnSignalInstaller>().Initialize(ctx);
         }
 
         public override void Unload()
@@ -23,6 +24,7 @@ namespace HalfGripSlapPack
             if (!host) return;
             host.GetComponent<MirrorInstaller>().RemoveMirror();
             host.GetComponent<WindowInstaller>().RemoveWindows();
+            host.GetComponent<TurnSignalInstaller>().RemoveSignals();
             Object.Destroy(host);
             host = null;
         }

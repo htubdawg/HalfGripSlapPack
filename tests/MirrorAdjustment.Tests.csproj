@@ -12,5 +12,6 @@
     <Compile Include="../SlapPack/src/WindowTravel.cs" Link="WindowTravel.cs" />
     <Compile Include="../SlapPack/src/MeshBufferData.cs" Link="MeshBufferData.cs" />
     <Compile Include="../SlapPack/src/WindowPolygon.cs" Link="WindowPolygon.cs" />
+    <Compile Include="../SlapPack/src/TurnSignalState.cs" Link="TurnSignalState.cs" />
   </ItemGroup>
 </Project>
