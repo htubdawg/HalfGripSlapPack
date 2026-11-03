@@ -5,11 +5,14 @@ Features in development: adjustable rear-view mirror, working window cranks, tur
 
 ## Turn-signal prototype
 
-Version **0.4.0** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
+Version **0.4.1** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
 steering column, two green cockpit arrows above the gauges inside the wheel rim, and synchronized amber overlays at the stock front/rear
 lamp locations. **Control placement and rendering still need an in-game playtest.**
 
-Grab the stalk's end with the normal hand control and move it vertically:
+The stalk extends beyond the wheel rim and rests at an upward angle, clear of the radio. Its enlarged grip hitbox takes priority over
+the wheel where they overlap. It moves 14 degrees to each detent; input follows the actual lever arc so both directions have equal sensitivity.
+
+Grab the stalk's end with the normal hand control and move it up/down:
 
 - **Down = left; up = right.** Halfway starts the signal without latching.
 - A quick halfway tap returns the stalk to neutral on release and completes three flashes total. Holding halfway keeps blinking
@@ -34,9 +37,13 @@ BlinkHalfPeriod = 0.4
 CancelArmSteering = 12
 CancelCenteredSteering = 4
 CancelMinimumTurn = 15
+StalkExtraLength = 1.8
+StalkUpAngle = 30
 ```
 
 `BlinkHalfPeriod` is seconds for each on/off phase (0.4 gives 75 flashes/minute). Steering and heading thresholds are degrees.
+`StalkExtraLength` is cockpit units beyond the measured wheel radius; `StalkUpAngle` is the neutral upward angle in degrees.
+Restart after changing stalk placement.
 Cancellation requires forward speed above 1 game unit/second. Custom bodies without recognized lamp meshes retain the cockpit indicators
 and log a warning about missing exterior locations.
 

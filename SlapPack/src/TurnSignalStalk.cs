@@ -7,7 +7,8 @@ namespace HalfGripSlapPack
         private TurnSignalState signal;
         private Grabber hand;
         private Camera drivingCamera;
-        private float throwDistance, startHand, startPosition;
+        private const float TravelDegrees = 14f;
+        private float startHandAngle, startPosition;
         internal bool CanInteract => hand && hand.isActiveAndEnabled && hand.viewCamera && hand.viewCamera.isActiveAndEnabled && drivingCamera && drivingCamera.isActiveAndEnabled &&
             Application.isFocused && !GameInput.Muted && Time.timeScale > 0;
 
@@ -18,9 +19,8 @@ namespace HalfGripSlapPack
             signal = state; hand = grabber;
             drivingCamera = worldCamera;
             movementPlane = plane;
-            throwDistance = length * Mathf.Sin(22 * Mathf.Deg2Rad);
             keepPhysicalCursorClose = true;
-            keepPhysicalCursorRange = 0.6f;
+            keepPhysicalCursorRange = Mathf.Max(0.6f, length * 0.16f);
             handIndicatorCameraOffset = 0.2f;
             releaseCursorBlend = 0;
             ResetRestPose(transform.localPosition, transform.localRotation);
@@ -36,15 +36,25 @@ namespace HalfGripSlapPack
         protected override void OnGrab()
         {
             signal.BeginHold();
-            startHand = constrainedPoint.y;
+            startHandAngle = HandAngle();
             startPosition = signal.StalkPosition;
         }
 
         protected override void OnHandMoved()
         {
             if (!CanInteract) { CancelHold(); return; }
-            signal.Move(startPosition + (constrainedPoint.y - startHand) / throwDistance);
+            Vector2 offset = constrainedPoint - position;
+            if (offset.sqrMagnitude < 0.01f) return;
+            // Follow the physical lever arc, including its upward rest angle. Mapping raw Y
+            // displacement would give different sensitivity at the upper and lower detents.
+            signal.Move(startPosition - Mathf.DeltaAngle(startHandAngle, HandAngle()) / TravelDegrees);
             RefreshPose();
+        }
+
+        private float HandAngle()
+        {
+            Vector2 offset = constrainedPoint - position;
+            return Mathf.Atan2(offset.y, offset.x) * Mathf.Rad2Deg;
         }
 
         protected override void OnRelease() { if (signal != null) { signal.Release(); RefreshPose(); } }
@@ -53,7 +63,7 @@ namespace HalfGripSlapPack
         {
             if (signal == null) return;
             // The stalk extends left from its pivot: positive roll moves its tip down.
-            angle = -signal.StalkPosition * 22 * Mathf.Deg2Rad;
+            angle = -signal.StalkPosition * TravelDegrees * Mathf.Deg2Rad;
             base.ApplyPose();
         }
 

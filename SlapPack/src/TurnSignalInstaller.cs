@@ -14,6 +14,7 @@ namespace HalfGripSlapPack
         private ConfigEntry<bool> enabledSignals;
         private ConfigEntry<int> shortFlashes;
         private ConfigEntry<float> halfPeriod, armSteering, centeredSteering, minimumHeading;
+        private ConfigEntry<float> stalkExtraLength, stalkUpAngle;
         private CarControllerNew car;
         private CarLink link;
         private HingedObject wheel;
@@ -36,6 +37,8 @@ namespace HalfGripSlapPack
             armSteering = ctx.Config.Bind("TurnSignals", "CancelArmSteering", 12f, new ConfigDescription("Steering degrees into the signaled turn required to arm cancellation.", new AcceptableValueRange<float>(6, 45)));
             centeredSteering = ctx.Config.Bind("TurnSignals", "CancelCenteredSteering", 4f, new ConfigDescription("Steering within this many degrees of center completes cancellation.", new AcceptableValueRange<float>(1, 5)));
             minimumHeading = ctx.Config.Bind("TurnSignals", "CancelMinimumTurn", 15f, new ConfigDescription("Actual heading change into the turn required before cancellation. Parked wheel movement does not cancel.", new AcceptableValueRange<float>(5, 90)));
+            stalkExtraLength = ctx.Config.Bind("TurnSignals", "StalkExtraLength", 1.8f, new ConfigDescription("Stalk length beyond the steering wheel radius, in cockpit units. Restart after changing.", new AcceptableValueRange<float>(0.5f, 3f)));
+            stalkUpAngle = ctx.Config.Bind("TurnSignals", "StalkUpAngle", 30f, new ConfigDescription("Upward neutral stalk angle in degrees. Restart after changing.", new AcceptableValueRange<float>(0, 45)));
             ctx.OnSceneLoaded(scene => { RemoveSignals(); nextScan = Time.unscaledTime + 0.5f; });
         }
 
@@ -84,14 +87,14 @@ namespace HalfGripSlapPack
                 Vector3 axis = parent ? parent.InverseTransformVector(sprite.transform.TransformVector(Vector3.right * sprite.sprite.bounds.extents.x)) : sprite.transform.TransformVector(Vector3.right * sprite.sprite.bounds.extents.x);
                 radius = Mathf.Clamp(axis.magnitude, 1.5f, 3.5f);
             }
-            float length = radius + 0.55f;
+            float length = radius + stalkExtraLength.Value;
             Vector3 normal = wheel.movementPlane.normalized;
             if (normal.sqrMagnitude < 0.5f) normal = Vector3.forward;
             var root = new GameObject("SlapPack.TurnSignalStalk");
             owned.Add(root); root.layer = layer;
             root.transform.SetParent(parent, false);
             root.transform.localPosition = wheel.transform.localPosition + normal * 0.15f;
-            root.transform.localRotation = Quaternion.LookRotation(normal, Vector3.up);
+            root.transform.localRotation = Quaternion.AngleAxis(-stalkUpAngle.Value, normal) * Quaternion.LookRotation(normal, Vector3.up);
             Material shaft = TurnSignalVisuals.Material(new Color(0.13f, 0.14f, 0.16f, 1), owned);
             Material knob = TurnSignalVisuals.Material(new Color(0.25f, 0.26f, 0.28f, 1), owned);
             TurnSignalVisuals.Polygon("SignalShaft", root.transform, new[] { new Vector3(-0.08f, -0.11f, 0), new Vector3(-length + 0.25f, -0.08f, 0),
@@ -102,7 +105,10 @@ namespace HalfGripSlapPack
             var hit = new GameObject("SignalGrip"); owned.Add(hit); hit.layer = layer;
             hit.transform.SetParent(root.transform, false); hit.transform.localPosition = new Vector3(-length, 0, -0.03f);
             InteriorCircleCollider collider = hit.AddComponent<InteriorCircleCollider>();
-            collider.radius = 0.3f; collider.hitBoxExpand = 0.08f;
+            collider.radius = 0.38f; collider.hitBoxExpand = 0.08f;
+            InteriorCollider wheelCollider = wheel.attachedCollider ? wheel.attachedCollider : wheel.GetComponentInChildren<InteriorCollider>();
+            int wheelPriority = wheelCollider ? wheelCollider.sortingLayer : 0;
+            collider.sortingLayer = wheelPriority < int.MaxValue ? wheelPriority + 1 : wheelPriority;
             stalk = root.AddComponent<TurnSignalStalk>();
             stalk.attachedCollider = collider;
             stalk.Initialize(signal, grabber, car.fpvCamera, normal, length);
