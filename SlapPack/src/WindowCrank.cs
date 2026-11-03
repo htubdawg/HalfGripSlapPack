@@ -63,7 +63,9 @@ namespace HalfGripSlapPack
             travel.Turn(-WindowTravel.AngularDelta(previousHandAngle, current), turns);
             previousHandAngle = current;
             angle = -travel.OpenFraction * turns * Mathf.PI * 2;
-            visual.localRotation = Quaternion.AngleAxis(angle * Mathf.Rad2Deg, face.Normal);
+            // The artwork normal faces the camera, opposite the hand plane's forward normal.
+            // Reverse its axis-angle sign so both rotate in the same on-screen direction.
+            visual.localRotation = Quaternion.AngleAxis(-angle * Mathf.Rad2Deg, face.Normal);
             pane.SetOpen(travel.OpenFraction);
         }
 
