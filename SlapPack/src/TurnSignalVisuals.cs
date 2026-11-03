@@ -41,24 +41,12 @@ namespace HalfGripSlapPack
             Polygon(name, parent, new[] { new Vector3(x0, y0, z), new Vector3(x1, y0, z),
                 new Vector3(x1, y1, z), new Vector3(x0, y1, z) }, material, layer, owned);
 
-        internal static MeshRenderer Arrow(Transform parent, Vector3 center, bool right, Material material, int layer, List<Object> owned)
-        {
-            // Convex arrow head plus shaft avoids a concave triangle fan.
-            var root = new GameObject(right ? "SlapPack.RightIndicator" : "SlapPack.LeftIndicator");
-            owned.Add(root);
-            root.layer = layer;
-            root.transform.SetParent(parent, false);
-            root.transform.localPosition = center;
-            if (!right) root.transform.localScale = new Vector3(-1, 1, 1);
-            MeshRenderer head = Polygon("ArrowHead", root.transform, new[] { new Vector3(0.25f, 0, 0),
-                new Vector3(0.02f, 0.18f, 0), new Vector3(0.02f, -0.18f, 0) }, material, layer, owned);
-            Rectangle("ArrowShaft", root.transform, -0.24f, -0.065f, 0.03f, 0.065f, 0, material, layer, owned);
-            return head;
-        }
+        internal static SignalDashLamp Arrow(Transform parent, Vector3 center, bool right, int layer, List<Object> owned) =>
+            new SignalDashLamp(parent, center, right, layer, owned);
 
-        internal static void SetArrow(MeshRenderer arrow, bool lit)
+        internal static void SetArrow(SignalDashLamp arrow, bool lit, bool visible)
         {
-            if (arrow) arrow.transform.parent.gameObject.SetActive(lit);
+            if (arrow != null) arrow.Set(lit, visible);
         }
 
         internal static List<MeshRenderer> Exterior(CarControllerNew car, bool left, Material material, List<Object> owned)

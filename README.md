@@ -5,9 +5,9 @@ Features in development: adjustable rear-view mirror, working window cranks, tur
 
 ## Turn-signal prototype
 
-Version **0.4.1** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
-steering column, two green cockpit arrows above the gauges inside the wheel rim, and synchronized amber overlays at the stock front/rear
-lamp locations. **Control placement and rendering still need an in-game playtest.**
+Version **0.4.2** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
+steering column, two inset green indicator lamps above the gauges inside the wheel rim, synchronized amber overlays at the stock front/rear
+lamp locations, and a relay tick/tock sound. **The revised lamp styling and audio still need an in-game playtest.**
 
 The stalk extends beyond the wheel rim and rests at an upward angle, clear of the radio. Its enlarged grip hitbox takes priority over
 the wheel where they overlap. It moves 14 degrees to each detent; input follows the actual lever arc so both directions have equal sensitivity.
@@ -21,11 +21,16 @@ Grab the stalk's end with the normal hand control and move it up/down:
 - Automatic cancellation requires steering into the indicated turn, actual forward travel and heading change, then steering returning
   near center. Turning the wheel while parked does not cancel. Holding the stalk manually prevents automatic return until release.
 
-Cockpit arrows blink with the exterior overlays, which are attached alongside the existing lamp meshes. The original headlights,
+Cockpit indicators use smaller pixel-style arrow outlines in dark beveled lenses. Both remain dimly visible when off, with a restrained
+green glow on the active lamp. They blink with the exterior overlays, which are attached alongside the existing lamp meshes. The original headlights,
 brake-light materials, steering, and car physics are not modified. The stalk stays fixed to the column rather than spinning with the wheel.
 Signals continue in the outside view while the interior stalk/arrows are hidden. Changing bodies rebuilds the exterior overlays.
-Disabling Slap Pack removes the stalk, arrows, and overlays. The first prototype is local only: it does not replicate signals to remote
-multiplayer cars and does not add a clicking sound or hazards.
+Disabling Slap Pack removes the stalk, arrows, overlays, and audio. Signals are local only: they are not replicated to remote
+multiplayer cars, and hazards are not implemented.
+
+A short mechanical **tick** sounds when the lamp turns on and a lower **tock** when it turns off. Audio is synthesized locally and routed
+through the game's cabin/SFX mixer. It plays in the cockpit only, stops when paused or disabled, and does not replay missed clicks on return.
+Sound generation failure logs a warning without disabling the visual signals.
 
 Settings in `BepInEx/config/halfgrip.slappack.cfg` (restart after changing timing/thresholds):
 
@@ -39,11 +44,14 @@ CancelCenteredSteering = 4
 CancelMinimumTurn = 15
 StalkExtraLength = 1.8
 StalkUpAngle = 30
+ClickSound = true
+ClickVolume = 0.35
 ```
 
 `BlinkHalfPeriod` is seconds for each on/off phase (0.4 gives 75 flashes/minute). Steering and heading thresholds are degrees.
 `StalkExtraLength` is cockpit units beyond the measured wheel radius; `StalkUpAngle` is the neutral upward angle in degrees.
 Restart after changing stalk placement.
+`ClickVolume` ranges from 0 to 1 and also respects the game's mixer volume. Set `ClickSound = false` to mute the relay.
 Cancellation requires forward speed above 1 game unit/second. Custom bodies without recognized lamp meshes retain the cockpit indicators
 and log a warning about missing exterior locations.
 
@@ -55,6 +63,9 @@ and log a warning about missing exterior locations.
 - Drive left and right turns, recenter steering, and confirm the stalk and lamps cancel. Repeat wheel movement while parked and confirm
   it stays latched. If cancellation feels too early/late, report the turn and configured thresholds.
 - Check the green arrows fit the instrument cluster without covering the gauges; placement is based on the stock cockpit screenshot.
+- Check both off-state lenses remain visible and the active arrow is readable without the old oversized solid green shape.
+- Listen for one tick/tock pair per blink, including short taps, held-half signals and cancellation. Check pause, outside view, mute and
+  volume settings, and confirm the other car audio is unaffected. Report whether the default relay volume is too loud or too quiet.
 - Switch camera views and body models, pause/lose focus while holding the stalk, and disable Slap Pack to check cleanup.
 - Check mirror, window cranks, shifting, braking, headlights, and their hand indicators still behave normally.
 
@@ -161,7 +172,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The fifty-one tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The sixty tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
@@ -169,6 +180,8 @@ Additional tests check half-precision GPU vertex decoding, including subnormal a
 GPU readback API; that path requires an in-game diagnostic run.
 Turn-signal tests cover direction mapping, exact short-flash completion, held-half behavior, full detents, manual cancellation, side
 changes, blink timing, left/right turn completion, parked/opposite-turn rejection, held cancellation override, and invalid inputs/settings.
+Relay tests cover click edges, cancellation, side changes, silent-phase handling, the paired three-flash sequence, sample duration,
+finite unclipped output, transient decay, and deterministic distinct tick/tock waveforms. Mixer routing and perceived sound quality require in-game testing.
 
 ## Window prototype playtest
 

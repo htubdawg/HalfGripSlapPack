@@ -233,6 +233,7 @@ internal static class Program
             Equal(2, Area(hull));
         });
         TurnSignalTests.Run(Check);
+        SignalRelayTests.Run(Check);
         Console.WriteLine(passed + " tests passed.");
     }
 

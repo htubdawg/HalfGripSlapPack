@@ -12,6 +12,8 @@ namespace HalfGripSlapPack
     {
         private ModContext context;
         private ConfigEntry<bool> enabledSignals;
+        private ConfigEntry<bool> clickSound;
+        private ConfigEntry<float> clickVolume;
         private ConfigEntry<int> shortFlashes;
         private ConfigEntry<float> halfPeriod, armSteering, centeredSteering, minimumHeading;
         private ConfigEntry<float> stalkExtraLength, stalkUpAngle;
@@ -20,7 +22,8 @@ namespace HalfGripSlapPack
         private HingedObject wheel;
         private TurnSignalStalk stalk;
         private TurnSignalState signal;
-        private MeshRenderer leftArrow, rightArrow;
+        private SignalDashLamp leftArrow, rightArrow;
+        private TurnSignalAudio relay;
         private Material amber;
         private List<MeshRenderer> leftLamps = new List<MeshRenderer>(), rightLamps = new List<MeshRenderer>();
         private readonly List<Object> owned = new List<Object>(), lampOwned = new List<Object>();
@@ -32,6 +35,8 @@ namespace HalfGripSlapPack
         {
             context = ctx;
             enabledSignals = ctx.Config.Bind("TurnSignals", "Enabled", true, "Enable the turn-signal stalk, cockpit arrows and local exterior lamp overlays.");
+            clickSound = ctx.Config.Bind("TurnSignals", "ClickSound", true, "Play synchronized relay tick/tock sounds in the cockpit, through the cabin/SFX mixer.");
+            clickVolume = ctx.Config.Bind("TurnSignals", "ClickVolume", 0.35f, new ConfigDescription("Relay click volume, in addition to the game's audio mixer volume.", new AcceptableValueRange<float>(0, 1)));
             shortFlashes = ctx.Config.Bind("TurnSignals", "ShortFlashes", 3, new ConfigDescription("Flashes for a released halfway tap.", new AcceptableValueRange<int>(1, 6)));
             halfPeriod = ctx.Config.Bind("TurnSignals", "BlinkHalfPeriod", 0.4f, new ConfigDescription("Seconds per on/off phase.", new AcceptableValueRange<float>(0.2f, 1f)));
             armSteering = ctx.Config.Bind("TurnSignals", "CancelArmSteering", 12f, new ConfigDescription("Steering degrees into the signaled turn required to arm cancellation.", new AcceptableValueRange<float>(6, 45)));
@@ -112,11 +117,12 @@ namespace HalfGripSlapPack
             stalk = root.AddComponent<TurnSignalStalk>();
             stalk.attachedCollider = collider;
             stalk.Initialize(signal, grabber, car.fpvCamera, normal, length);
-            Material green = TurnSignalVisuals.Material(new Color(0.12f, 1f, 0.18f, 1), owned);
             Vector3 dash = wheel.transform.localPosition + new Vector3(0, radius * 0.62f, -0.12f);
-            leftArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.left * 0.5f, false, green, layer, owned);
-            rightArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.right * 0.5f, true, green, layer, owned);
-            TurnSignalVisuals.SetArrow(leftArrow, false); TurnSignalVisuals.SetArrow(rightArrow, false);
+            leftArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.left * 0.5f, false, layer, owned);
+            rightArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.right * 0.5f, true, layer, owned);
+            TurnSignalVisuals.SetArrow(leftArrow, false, true); TurnSignalVisuals.SetArrow(rightArrow, false, true);
+            try { relay = new TurnSignalAudio(transform, grabber.gameObject, owned); }
+            catch (Exception error) { context.Log.LogWarning("Relay sound unavailable; turn signals remain active: " + error.Message); }
             amber = TurnSignalVisuals.Material(new Color(1f, 0.4f, 0.015f, 1), owned);
             RebuildLamps();
             context.Log.LogInfo("Turn-signal stalk attached left of steering column. Down=left, up=right; halfway=tap/hold, full=latch. Cockpit arrows and amber lamps active.");
@@ -136,7 +142,8 @@ namespace HalfGripSlapPack
             if (stalk) stalk.RefreshPose();
             bool left = signal.Direction < 0 && signal.FlashOn, right = signal.Direction > 0 && signal.FlashOn;
             bool cockpit = car.fpvCamera && car.fpvCamera.isActiveAndEnabled;
-            TurnSignalVisuals.SetArrow(leftArrow, left && cockpit); TurnSignalVisuals.SetArrow(rightArrow, right && cockpit);
+            TurnSignalVisuals.SetArrow(leftArrow, left, cockpit); TurnSignalVisuals.SetArrow(rightArrow, right, cockpit);
+            if (relay != null) relay.Step(signal.Direction, signal.FlashOn, clickSound.Value && cockpit && Time.timeScale > 0, clickVolume.Value);
             foreach (MeshRenderer lamp in leftLamps) if (lamp) lamp.enabled = left;
             foreach (MeshRenderer lamp in rightLamps) if (lamp) lamp.enabled = right;
         }
@@ -166,6 +173,7 @@ namespace HalfGripSlapPack
             DestroyOwned(lampOwned); DestroyOwned(owned);
             leftLamps.Clear(); rightLamps.Clear();
             car = null; link = null; wheel = null; stalk = null; signal = null; leftArrow = null; rightArrow = null;
+            relay = null;
         }
 
         private static void DestroyOwned(List<Object> objects)
