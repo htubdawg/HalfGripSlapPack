@@ -157,6 +157,7 @@ namespace HalfGripSlapPack
 
         internal void RemoveWindows()
         {
+            WindowCrankIndicators.RestoreAll();
             foreach (WindowCrank crank in cranks) if (crank) crank.gameObject.SetActive(false);
             cranks.Clear();
             foreach (var replacement in replacements)

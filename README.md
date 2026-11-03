@@ -5,8 +5,8 @@ Planned features: adjustable rear-view mirror, turn signals, windshield wipers, 
 
 ## Window-crank development branch
 
-`test/window-cranks` starts from the working mirror branch. Version **0.3.1** corrects the artwork rotation direction in the interactive
-window prototype for the stock cabin atlas. The initial prototype has been reported working in-game; the direction correction still needs a playtest.
+`test/window-cranks` starts from the working mirror branch. Version **0.3.2** anchors the crank direction symbols over the held hand on
+both doors. The window prototype and rotation correction have been reported working in-game; the symbol-placement fix still needs a playtest.
 
 Look toward either door, grab its existing crank artwork with the normal hand control, and move the hand in circles. Clockwise lowers
 that window; counterclockwise raises it. The two windows move independently, stop at the ends, and start fully raised each race.
@@ -119,6 +119,8 @@ GPU readback API; that path requires an in-game diagnostic run.
 - Look toward each door and try several clockwise/counterclockwise turns. Check that the visible crank and hand stay aligned, each window moves
   independently, and reversing at the stops responds immediately.
 - Confirm clockwise and counterclockwise hand movement rotates the visible crank in the same direction on both doors.
+- While cranking either door, confirm the direction symbols stay over the hand as the view turns, instead of appearing on the dashboard.
+  Release and try steering/shifting to confirm their normal indicators still work.
 - Check tint at fully raised, half raised, and fully lowered states. The upper edge should descend into the door; windshield and rear glass should
   remain unchanged. Report whether the default 4% opacity is visible enough.
 - Release/re-grab, pause, lose focus, switch to the outside camera and back, restart a race, and try the other stock car model.

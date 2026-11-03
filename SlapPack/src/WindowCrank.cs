@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 
@@ -90,6 +91,56 @@ namespace HalfGripSlapPack
             if (!(__instance.Held is WindowCrank)) return true;
             __result = false;
             return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Grabber), "UpdateIndicators")]
+    internal static class WindowCrankIndicators
+    {
+        private static readonly Dictionary<SpriteRenderer, float> originalDepths = new Dictionary<SpriteRenderer, float>();
+
+        [HarmonyPostfix]
+        private static void Postfix(Grabber __instance)
+        {
+            SpriteRenderer symbols = __instance.forceDirectionSprite;
+            if (!symbols) return;
+            if (!(__instance.Held is WindowCrank crank) || !__instance.viewCamera || !symbols.enabled)
+            {
+                Restore(symbols);
+                return;
+            }
+            if (!originalDepths.ContainsKey(symbols)) originalDepths.Add(symbols, symbols.transform.position.z);
+
+            // The game's force arrows copy grip world X/Y but retain their old world Z. That
+            // misprojects camera-space cranks when looking at a door. Use the full hand position
+            // and pull slightly toward the camera so the symbols draw over the held hand.
+            Vector3 hand = __instance.handIndicator && __instance.handIndicator.gameObject.activeInHierarchy
+                ? __instance.handIndicator.position
+                : Grabber.TowardCamera(__instance.viewCamera, crank.GripWorldPoint(), crank.handIndicatorCameraOffset);
+            symbols.transform.position = Grabber.TowardCamera(__instance.viewCamera, hand, 0.02f);
+        }
+
+        private static void Restore(SpriteRenderer symbols)
+        {
+            if (!originalDepths.TryGetValue(symbols, out float depth)) return;
+            Vector3 position = symbols.transform.position;
+            position.z = depth;
+            symbols.transform.position = position;
+            originalDepths.Remove(symbols);
+        }
+
+        internal static void RestoreAll()
+        {
+            // The native code reuses the sprite's last Z for other controls. Restore that depth
+            // before our patch is removed or the crank proxies are destroyed.
+            foreach (var pair in originalDepths)
+                if (pair.Key)
+                {
+                    Vector3 position = pair.Key.transform.position;
+                    position.z = pair.Value;
+                    pair.Key.transform.position = position;
+                }
+            originalDepths.Clear();
         }
     }
 }
