@@ -29,12 +29,12 @@ internal static class WiperTests
                 state.SetSpeed(expected); Assert(state.Speed == expected, "Dial setting changed.");
             }
         });
-        check("Each speed makes one smooth out-and-back sweep in its period", () =>
+        check("Continuous and fast modes make smooth out-and-back sweeps at their motor speeds", () =>
         {
-            foreach (int speed in new[] { 1, 2, 3 })
+            foreach (int speed in new[] { 2, 3 })
             {
                 var state = new WiperState(); state.SetSpeed((WiperSpeed)speed);
-                float period = new[] { 0f, 2.4f, 1.4f, 0.8f }[speed];
+                float period = speed == 2 ? 1.4f : 0.8f;
                 state.Tick(period / 4); Equal(0.5f, state.Sweep);
                 state.Tick(period / 4); Equal(1, state.Sweep);
                 state.Tick(period / 4); Equal(0.5f, state.Sweep);
@@ -61,11 +61,11 @@ internal static class WiperTests
             Assert(!state.Washing, "Spray remained active after release.");
             state.Tick(3.9f); Assert(state.Parked, "Off wipers did not park after the minimum three cycles."); Equal(0, state.Sweep);
         });
-        check("Washer burst resumes the selected speed after three cycles without moving the dial", () =>
+        check("Washer burst resumes intermittent mode with its parked pause after three cycles", () =>
         {
             var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.SetPull(1); state.Tick(0.7f);
-            Equal(1, state.Sweep); state.Release(); state.Tick(3.5f); Equal(0, state.Sweep); state.Tick(0.6f);
-            Equal(0.5f, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && !state.Parked, "Slow setting was lost.");
+            Equal(1, state.Sweep); state.Release(); state.Tick(3.5f); Equal(0, state.Sweep); state.Tick(2.5f); state.Tick(0.35f);
+            Equal(0.5f, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && !state.Parked, "Intermittent setting was lost.");
         });
         check("Wash never slows fast wipers down", () =>
         {
@@ -91,7 +91,7 @@ internal static class WiperTests
         });
         check("Speed changes preserve blade position and phase", () =>
         {
-            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.6f);
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.35f);
             state.SetSpeed(WiperSpeed.Medium); Equal(0.5f, state.Sweep);
             state.Tick(0.35f); Equal(1, state.Sweep);
         });
@@ -103,9 +103,9 @@ internal static class WiperTests
             Equal(0.5f, state.Sweep); Equal(1, state.Pull);
             state.SetPull(-1); Equal(0, state.Pull);
         });
-        check("Wiper timing rejects invalid or unordered speed periods", () =>
+        check("Wiper timing rejects invalid pauses and motor periods", () =>
         {
-            foreach (float[] periods in new[] { new[] { 0f, 1f, 0.5f }, new[] { 1f, 2f, 0.5f }, new[] { float.NaN, 1f, 0.5f } })
+            foreach (float[] periods in new[] { new[] { 0f, 1f, 0.5f }, new[] { 1f, 0.5f, 1f }, new[] { float.NaN, 1f, 0.5f } })
             {
                 bool threw = false;
                 try { new WiperState(periods[0], periods[1], periods[2]); } catch (ArgumentOutOfRangeException) { threw = true; }
@@ -165,7 +165,7 @@ internal static class WiperTests
         });
         check("Starting wash mid-stroke guarantees three full cycles after the partial one", () =>
         {
-            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Slow); state.Tick(1);
+            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.5f);
             state.SetPull(1); state.Release(); state.SetSpeed(WiperSpeed.Off);
             state.Tick(0.5f); Equal(0, state.Sweep);
             state.Tick(2); Assert(!state.Parked, "An existing partial cycle counted as a full wash wipe.");
@@ -185,11 +185,12 @@ internal static class WiperTests
             state.Tick(1.5f); Assert(!state.Parked, "Off canceled the washer minimum.");
             state.Tick(1); Assert(state.Parked, "Off failed to park after the minimum.");
         });
-        check("A large frame finishes the washer burst and uses leftover time at the selected speed", () =>
+        check("A large frame finishes the washer burst and uses leftover time in the intermittent pause", () =>
         {
             var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Slow);
             state.SetPull(1); state.Release(); state.Tick(4);
-            Equal(1, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && !state.Parked, "Burst did not return to slow.");
+            Equal(0, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && state.Parked, "Burst skipped its intermittent pause.");
+            state.Tick(1.5f); Equal(1, state.Sweep);
         });
     }
 

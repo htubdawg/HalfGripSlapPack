@@ -5,7 +5,7 @@ Features: adjustable rear-view mirror, working window cranks, turn signals, and 
 
 ## Windshield-wiper prototype
 
-Version **0.5.2** on `test/windshield-wipers` includes the tested turn-signal work and adds a shorter stalk on the right of the steering column,
+Version **0.5.3** on `test/windshield-wipers` includes the tested turn-signal work and adds a shorter stalk on the right of the steering column,
 angled upward and stopping before the shifter. The grip uses the same code-drawn 128×20 pixel artwork and depth-cutout rendering as the signal stalk,
 with a windshield symbol and a speed sleeve marked **0 / I / II / III**. No external images are needed.
 
@@ -16,8 +16,11 @@ with a windshield symbol and a speed sleeve marked **0 / I / II / III**. No exte
 - **Hold right-click on the end, then drag up/down:** rotate the speed sleeve up through **off → slow → medium → fast**, or back down to off.
   Clicking without moving leaves the speed unchanged. The dial clicks between **exactly four fixed positions**, with a quiet mechanical click per change.
   The sleeve and markings stay on a detent even while held; there are no intermediate positions. Off and fast are hard stops.
-  The native hand stays on the grip and the cursor returns there on release. Speeds take 2.4, 1.4 and 0.8 seconds per complete out-and-back cycle.
-- Washing and its minimum wipe burst use at least medium speed, retaining fast if already selected. Changing speed preserves blade position.
+  The native hand stays on the grip and the cursor returns there on release. The three running positions are:
+  **slow/intermittent** (one normal 1.4-second wipe, then a 2.5-second parked pause), **medium/continuous** (1.4-second wipes without a pause),
+  and **fast** (0.8-second wipes without a pause). Intermittent changes wipe frequency, while fast increases blade velocity.
+- Washing interrupts any intermittent pause immediately. Its minimum wipe burst uses continuous normal speed, retaining fast if already selected.
+  Afterward, intermittent mode resumes with a parked pause. Changing speed preserves blade position.
   Switching off finishes the washer minimum (if pending) and the current cycle before parking.
 
 Two dark rubber/metal wipers are fitted to the actual front windshield triangles, with a tandem sweep constrained to the opening.
@@ -26,8 +29,8 @@ The driver washer nozzle is offset and aimed inward, separately from the blade p
 Washer jets are a small visual spray effect only: **rain, accumulated water, clearing masks, fluid consumption and rain sensing are not implemented**.
 The controls and selected speed start off each race. Pausing freezes the blades; losing focus or leaving the cockpit releases a held washer control.
 
-CFG section `[Wipers]` provides `Enabled` (default true), `StalkLength` (3.5 cockpit units) and `StalkUpAngle` (18 degrees).
-Restart after changing placement. Existing mirror, windows and turn-signal settings remain available.
+CFG section `[Wipers]` provides `Enabled` (default true), `IntermittentPause` (2.5 seconds), `StalkLength` (3.5 cockpit units) and `StalkUpAngle` (18 degrees).
+Restart after changing timing or placement. Existing mirror, windows and turn-signal settings remain available.
 
 **In-game validation still required:** check reach and shifter clearance, all four dial positions, sustained wash and release at each speed,
 off commands during both halves of a stroke, blade coverage and parking, then camera/body changes, pause, focus loss and mod disable.
@@ -209,7 +212,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The 102 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The 111 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
@@ -225,6 +228,8 @@ pause and invalid input, plus blade clearance through the entire sweep on trapez
 Knob tests cover stationary clicks, up/down dragging, steady holds, detent hysteresis, hard stops without windup, release/re-grab behavior,
 invalid input, phase continuity and exactly four discrete positions throughout a drag. Washer tests cover short taps, long holds, partial strokes,
 repeated pulls, off commands, and speed restoration after the three-cycle minimum. Spray tests check the inward driver adjustment and unchanged passenger trajectory.
+Intermittent tests verify normal-speed strokes followed by motionless parked pauses, continuous modes without delays, mode changes during a pause,
+washer overrides and return to intermittent operation, and matching results across large versus small frame steps.
 Pixel-art checks enforce the native 128×20 resolution, small opaque palette, transparent border, and connected grip/shaft/boot silhouette.
 
 ## Window prototype playtest

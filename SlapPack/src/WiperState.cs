@@ -9,6 +9,8 @@ namespace HalfGripSlapPack
     internal sealed class WiperState
     {
         private readonly double[] periods;
+        private readonly double intermittentPause;
+        private double pauseRemaining;
         private double phase;
         private bool cycling;
         private int washCyclesRemaining;
@@ -18,16 +20,18 @@ namespace HalfGripSlapPack
         internal bool Parked => !cycling;
         internal float Sweep => (float)((1 - Math.Cos(phase * Math.PI * 2)) * 0.5);
 
-        internal WiperState(float slow = 2.4f, float medium = 1.4f, float fast = 0.8f)
+        internal WiperState(float intermittentPause = 2.5f, float medium = 1.4f, float fast = 0.8f)
         {
-            if (!Positive(slow) || !Positive(medium) || !Positive(fast) || slow <= medium || medium <= fast)
-                throw new ArgumentOutOfRangeException(nameof(slow), "Wipe periods must be finite, positive and decrease with speed.");
-            periods = new[] { 0.0, slow, medium, fast };
+            if (!Positive(intermittentPause) || !Positive(medium) || !Positive(fast) || medium <= fast)
+                throw new ArgumentOutOfRangeException(nameof(intermittentPause), "The intermittent pause and wipe periods must be finite and positive; fast must be faster than normal.");
+            this.intermittentPause = intermittentPause;
+            periods = new[] { 0.0, medium, medium, fast };
         }
 
         internal void SetSpeed(WiperSpeed setting)
         {
             if ((int)setting < 0 || (int)setting > 3) throw new ArgumentOutOfRangeException(nameof(setting));
+            if (setting != WiperSpeed.Slow) pauseRemaining = 0;
             Speed = setting;
         }
         internal void SetPull(float fraction)
@@ -37,9 +41,17 @@ namespace HalfGripSlapPack
             Pull = Math.Max(0, Math.Min(1, fraction));
             // Count full out-and-back cycles, not individual strokes. An already moving
             // blade finishes its partial cycle before the three guaranteed full cycles.
-            if (!wasWashing && Washing) washCyclesRemaining = phase > 0 ? 4 : 3;
+            if (!wasWashing && Washing)
+            {
+                washCyclesRemaining = phase > 0 ? 4 : 3;
+                pauseRemaining = 0;
+            }
+            if (wasWashing && !Washing && washCyclesRemaining == 0 && phase == 0 && Speed == WiperSpeed.Slow)
+            {
+                pauseRemaining = intermittentPause; cycling = false;
+            }
         }
-        internal void Release() { Pull = 0; }
+        internal void Release() { SetPull(0); }
 
         internal void Tick(float seconds)
         {
@@ -52,8 +64,19 @@ namespace HalfGripSlapPack
                 {
                     elapsed = Math.Max(0, elapsed - untilBurstEnds);
                     phase = 0; washCyclesRemaining = 0; cycling = Speed != WiperSpeed.Off;
+                    if (Speed == WiperSpeed.Slow)
+                    {
+                        // The washer has just finished a wipe. Resume intermittent mode
+                        // with its parked pause rather than adding an immediate extra wipe.
+                        pauseRemaining = intermittentPause; cycling = false;
+                        TickIntermittent(elapsed); return;
+                    }
                     if (elapsed == 0 || Speed == WiperSpeed.Off) return;
                 }
+            }
+            if (Speed == WiperSpeed.Slow && !Washing && washCyclesRemaining == 0)
+            {
+                TickIntermittent(elapsed); return;
             }
             int effective = Washing || washCyclesRemaining > 0 ? Math.Max(2, (int)Speed) : (int)Speed;
             if (effective == 0 && phase == 0) { cycling = false; return; }
@@ -67,6 +90,30 @@ namespace HalfGripSlapPack
             washCyclesRemaining -= (int)Math.Min(washCyclesRemaining, completed);
             if (effective == 0) { phase = 0; cycling = false; }
             else phase %= 1;
+        }
+
+        private void TickIntermittent(double elapsed)
+        {
+            if (pauseRemaining > 0)
+            {
+                if (elapsed < pauseRemaining) { pauseRemaining -= elapsed; return; }
+                elapsed -= pauseRemaining; pauseRemaining = 0;
+            }
+            double period = periods[(int)WiperSpeed.Medium];
+            lastPeriod = period;
+            double untilPark = (1 - phase) * period;
+            if (elapsed + 0.000001 < untilPark)
+            {
+                cycling = true; phase += elapsed / period; return;
+            }
+            elapsed = Math.Max(0, elapsed - untilPark);
+            phase = 0; cycling = false;
+            // Each following block is a parked pause then a normal-speed wipe. Reduce
+            // whole blocks at once so large frame gaps never require an unbounded loop.
+            elapsed %= intermittentPause + period;
+            if (elapsed <= intermittentPause) { pauseRemaining = intermittentPause - elapsed; return; }
+            phase = (elapsed - intermittentPause) / period;
+            cycling = true;
         }
 
         private double lastPeriod = 1.4;

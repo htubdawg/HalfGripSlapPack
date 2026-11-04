@@ -237,6 +237,7 @@ internal static class Program
         SignalStalkLayoutTests.Run(Check);
         WiperTests.Run(Check);
         WiperKnobTests.Run(Check);
+        WiperIntermittentTests.Run(Check);
         Console.WriteLine(passed + " tests passed.");
     }
 

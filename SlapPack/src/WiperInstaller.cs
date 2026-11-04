@@ -12,7 +12,7 @@ namespace HalfGripSlapPack
     {
         private ModContext context;
         private ConfigEntry<bool> enableWipers;
-        private ConfigEntry<float> stalkLength, stalkUpAngle;
+        private ConfigEntry<float> stalkLength, stalkUpAngle, intermittentPause;
         private CarLink link;
         private CarControllerNew car;
         private CameraSwitch cameras;
@@ -27,6 +27,8 @@ namespace HalfGripSlapPack
         {
             context = ctx;
             enableWipers = ctx.Config.Bind("Wipers", "Enabled", true, "Enable the right-hand washer/speed stalk and windshield wipers. No rain mechanics.");
+            intermittentPause = ctx.Config.Bind("Wipers", "IntermittentPause", 2.5f,
+                new ConfigDescription("Seconds parked between normal-speed wipes in the first dial position. Restart after changing.", new AcceptableValueRange<float>(0.5f, 10f)));
             stalkLength = ctx.Config.Bind("Wipers", "StalkLength", 3.5f,
                 new ConfigDescription("Right-hand stalk length in cockpit units. Shorter than the signal stalk; automatically limited for shifter clearance. Restart after changing.", new AcceptableValueRange<float>(2.6f, 4f)));
             stalkUpAngle = ctx.Config.Bind("Wipers", "StalkUpAngle", 18f,
@@ -81,7 +83,7 @@ namespace HalfGripSlapPack
 
         private void Attach(CarLink target, CameraSwitch cameraSwitch, Grabber hand)
         {
-            link = target; car = target.cc; cameras = cameraSwitch; state = new WiperState();
+            link = target; car = target.cc; cameras = cameraSwitch; state = new WiperState(intermittentPause.Value);
             blades = new WiperBlades(car.transform, WiperWindshield.Find(car, cameras), bladeOwned);
             glassSignature = GlassSignature();
             HingedObject wheel = target.sw.wheel;
@@ -121,7 +123,7 @@ namespace HalfGripSlapPack
             try { clicks = new TurnSignalAudio(transform, hand.gameObject, owned); }
             catch (Exception error) { context.Log.LogWarning("Wiper dial click unavailable: " + error.Message); }
             stalk.Initialize(state, hand, car.fpvCamera, normal, length, artwork, clicks);
-            context.Log.LogInfo("Wipers attached: pull down to wash with a three-cycle minimum; hold right-click and drag up/down through four fixed speed detents. Two blades fitted to front glass.");
+            context.Log.LogInfo("Wipers attached: off/intermittent/continuous/fast detents; intermittent park pause=" + intermittentPause.Value + "s. Pull down to wash with a three-cycle minimum.");
         }
 
         private void LateUpdate()

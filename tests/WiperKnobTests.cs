@@ -67,7 +67,7 @@ internal static class WiperKnobTests
         });
         check("Rotating speed preserves the current wipe phase", () =>
         {
-            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.6f);
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.35f);
             var knob = new WiperKnobRotation(); knob.Begin(state.Speed); knob.Move(0.3f);
             state.SetSpeed(knob.Setting); Equal(0.5f, state.Sweep);
             Assert(!state.Washing && state.Speed == WiperSpeed.Medium, "Speed rotation engaged the washer.");
