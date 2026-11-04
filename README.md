@@ -3,7 +3,7 @@
 **Version 0.8.3** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
 
 More things to grab in your car: adjust the rear-view mirror, wind the windows down, use the turn signals, and clear rain and slush
-with working windshield wipers. Rain builds up on the glass and distorts the view until you wipe it away.
+with working windshield wipers. Rain builds up on the windshield and distorts the view until you wipe it away. Side and rear windows get lighter, self-clearing weather.
 
 ## In the cockpit
 
@@ -25,9 +25,14 @@ click, and cancel after you complete the indicated turn. The wipers finish their
 
 ### Rain and snow
 
-Rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
+On the windshield, rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
 The blades clear their swept area, leaving water around the edges. Water bends the view through the glass using the current frame,
 with point filtering to match the game's pixels.
+
+All side windows (including quarter panes) and the rear glass get sparse rain beads and light snow patches. Side droplets run downward
+and trail with airflow; the sheltered rear beads move more slowly. Snow favors the edges. These surfaces drain/dry and shed snow
+naturally, with added opacity capped at 20% per pixel on the sides and 16% on the rear, since there is no rear wiper or defroster.
+Door-window deposits move with the crank-operated glass and disappear below the sill when lowered.
 
 Vanilla rain and snow work on their own. **Continuous mode (II)** is intended for vanilla rain; use intermittent for lighter weather
 and fast for heavier rain. Mode selection stays manual.
@@ -90,14 +95,15 @@ then restart. Existing saved settings are kept when updating: to use the new mir
 | `Mirror.Sensitivity` | `8` | How quickly the mirror moves while dragging |
 | `Mirror.HorizontalLimit` / `VerticalLimit` | `30` / `20` | Maximum mirror adjustment in degrees |
 | `Windows.Enabled` | `true` | Enables the two window cranks and moving glass |
+| `Windows.WeatherEffects` | `true` | Light side/rear rain and snow; independent of crank and wiper settings |
 | `Windows.TintOpacity` | `0.04` | Tint on raised side-window glass |
 | `Windows.TurnsForFullTravel` | `3` | Crank turns from fully raised to fully lowered |
 | `TurnSignals.Enabled` | `true` | Enables the signal stalk, arrows and exterior lamps |
 | `TurnSignals.ClickSound` / `ClickVolume` | `true` / `0.35` | Relay sound and volume |
 | `Wipers.Enabled` | `true` | Enables wipers and their controls |
-| `Wipers.WeatherEffects` | `true` | Enables rain/slush buildup and wiping |
+| `Wipers.WeatherEffects` | `true` | Enables windshield rain/slush buildup and wiping |
 | `Wipers.IntermittentPause` | `2.5` | Seconds parked between wipes in mode I |
-| `Wipers.RainObscuration` | `1` | Strength of water obscuration |
+| `Wipers.RainObscuration` | `1` | Strength of windshield water obscuration |
 | `Wipers.RefractionEnabled` | `true` | Water distortion; disabling it keeps the tint overlay |
 | `Wipers.RefractionCaptureWidth` | `320` | Scene-copy width (320–1280). Higher values give finer detail at more cost |
 | `Wipers.RefractionStrength` | `0.008` | Strength of the distortion |

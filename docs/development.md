@@ -72,3 +72,12 @@ reference assets and must stay outside the repository and distribution. Shared m
 Changes the new-config mirror FOV from 22° to 16° and rewrites the player README around ProcTrack's features/install/settings structure.
 Existing BepInEx values remain intact; updating users can set `[Mirror] MirrorFOV = 16` explicitly. The default change does not alter the
 refraction or performance pass.
+
+
+## Side/rear weather
+
+`WindowWeatherInstaller` owns unwiped glass effects separately from `WiperInstaller`. `WindowWeatherSurface` selects connected coplanar side/rear triangles and retains their footprint; `WindowWeatherState` simulates sparse, bounded deposits with no base film or windshield clearing. Each patch has a 64×32 point-filtered texture, updated at up to 20 Hz. Source triangles are de-duplicated before two-sided rendering.
+
+`WindowInstaller.MovingPane` maps matching source indices to the door's open fraction. Weather geometry moves with that glass, clips against its aperture and keeps UVs in glass coordinates; fresh deposition is restricted to the exposed part. The original glass meshes/materials remain unchanged. No refraction camera/pass is added for side or rear windows.
+
+The expanded model suite has 149 passing tests. Live Unity rendering, mesh discovery on both bodies, mirror visibility and frame-time cost still require the runtime checks in STATUS.md.
