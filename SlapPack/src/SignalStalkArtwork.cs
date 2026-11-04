@@ -50,7 +50,23 @@ namespace HalfGripSlapPack
             go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             MeshRenderer renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = WindowMaterials.Transparent(Color.white, texture, owned);
+            // This is an opaque silhouette with holes, not translucent glass. Write depth
+            // before transparent gauge needles draw, while preserving the wheel's nearer depth.
+            // Otherwise transparent sorting can put a needle over the shaft despite its position.
+            Material material = WindowMaterials.Transparent(Color.white, texture, owned);
+            material.name = "SlapPack cutout signal stalk";
+            material.SetFloat("_Surface", 0);
+            material.SetFloat("_AlphaClip", 1);
+            material.SetFloat("_Cutoff", 0.5f);
+            material.SetFloat("_SrcBlend", (float)BlendMode.One);
+            material.SetFloat("_DstBlend", (float)BlendMode.Zero);
+            material.SetFloat("_ZWrite", 1);
+            material.SetFloat("_ZTest", (float)CompareFunction.LessEqual);
+            material.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.EnableKeyword("_ALPHATEST_ON");
+            material.SetOverrideTag("RenderType", "TransparentCutout");
+            material.renderQueue = (int)RenderQueue.AlphaTest;
+            renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
         }

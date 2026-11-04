@@ -5,14 +5,15 @@ Features in development: adjustable rear-view mirror, working window cranks, tur
 
 ## Turn-signal prototype
 
-Version **0.4.5** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
+Version **0.4.6** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
 steering column, two inset green indicator lamps on the dashboard immediately left of the gear display, synchronized amber overlays at the
-stock front/rear lamp locations, and a relay tick/tock sound. **The new stalk artwork still needs an in-game playtest.**
+stock front/rear lamp locations, and a relay tick/tock sound. **The stalk depth fix still needs an in-game playtest.**
 
 The stalk is hand-drawn directly in code on a **128×20 pixel grid**, using seven opaque graphite/steel colors plus transparency.
 Stepped shading, a small beveled grip, stamped arrows, metal edge highlights and chunky rubber ribs match the cockpit's low-resolution style.
 The grip and boot retain their proportions as the shaft stretches to the configured length. Its placement and native grab point are preserved.
 No external image file is required. Future cockpit artwork should follow this code-drawn, limited-palette approach.
+The stalk uses an alpha-cutout material with depth writes: the steering wheel covers it, while the instrument cluster and moving needles stay behind it.
 
 The stalk extends beyond the wheel rim and rests at an upward angle, clear of the radio. Its enlarged grip hitbox takes priority over
 the wheel where they overlap. It moves 14 degrees to each detent; input follows the actual lever arc so both directions have equal sensitivity.
