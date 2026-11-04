@@ -85,3 +85,9 @@ The expanded model suite has 149 passing tests. Live Unity rendering, mesh disco
 ### Test build 0.8.4 visibility correction
 
 The game intentionally disables native glass MeshRenderers in cockpit view (`CameraSwitch.SetWindshields(false)`). Owned precipitation follows source GameObject activation, not the native renderer's enabled flag. Using that flag hid the initial side/rear effect in the cockpit. Manifest, README and development assembly version identify this correction as 0.8.4; live rendering remains to be verified.
+
+### Test build 0.8.5 runoff trails
+
+A bounded set of water heads stamps traveled segments into a fading 64×32 trail field. Side heads move with stronger projected gravity/airflow; rear heads remain slower and fewer. Trails remain fixed to the glass and decay instead of repeatedly undergoing bilinear advection, retaining visible streaks. Higher water contrast and localized opacity replace the faint isolated dots reported in 0.8.4. No scene sampling or extra camera is added.
+
+The 155-test suite includes connected-streak, sustained-coverage, airflow-reversal and trail-clearing checks. The local caps are now 32% side / 24% rear; typical vanilla side mean opacity in the deterministic model is about 1.7%. Game appearance and native rendering cost still need playtesting.

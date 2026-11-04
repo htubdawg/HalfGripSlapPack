@@ -1,3 +1,18 @@
+# Test update 0.8.5 — visible runoff streaks
+
+The user reported that 0.8.4 droplets were barely visible. Bilinear water transport spread isolated small splats into faint patches; it did not retain a distinct runoff path. 0.8.5 adds bounded moving water heads that rasterize continuous narrow trails onto the glass. Those trails fade in place rather than diffusing with the bead field.
+
+- Side heads follow stronger gravity and signed tangential airflow, leaving longer streaks while parked and slanted trails at speed. Rear glass retains fewer, slower heads and shorter trails.
+- Brighter highlights and dark rims improve contrast against scenery. Rain impact density is increased. Combined local opacity caps are now 32% side / 24% rear, restricted to wet details; no blanket film is added. At most 12 side / 8 rear heads are active per patch.
+- Natural drying, short trail lifetime, edge-biased snow, crank clipping and the 0.8.4 cockpit-visibility correction remain. Snow-only weather creates no liquid trails. No new camera, refraction pass or shared asset mutation is introduced.
+- Root AGENTS.md explicitly directs Codex to read and follow CLAUDE.md as the shared repository instructions. Manifest, README and development project all identify this test build as 0.8.5.
+
+Validation: compile passes with zero warnings/errors; all 155 model/control tests pass. New checks cover connected streak length/visible coverage in vanilla rain, ten-minute moving downpours, signed airflow reversal, drying of trails, open apertures, snow-only behavior and shorter rear paths. The vanilla side simulation produced a longest connected trail of 21 texels on the 64×32 grid, about 6.7% of samples above 8% opacity and about 1.7% mean opacity. Tested prolonged moving storms stay below 6% mean opacity with the local caps enforced. These are simulation measurements, not screenshots or in-game visibility claims.
+
+Runtime checks: install 0.8.5 from test/side-rear-weather and check stationary rain, acceleration, reversing and crosswind; compare side and rear streak length/contrast; lower/raise each window; inspect both bodies, mirror view, camera swaps and snow/dry transitions. Measure Unity frame time and confirm that stronger localized detail remains comfortable. Main remains unchanged.
+
+---
+
 # Test update 0.8.4 — cockpit visibility and version identification
 
 The initial side/rear test commit retained manifest 0.8.3 and incorrectly gated the precipitation renderer on `Source.enabled`. Decompiling HalfGripRefs 0.419 `CameraSwitch.UpdateCameraView` confirms the game calls `SetWindshields(false)` in cockpit view, disabling the original glass MeshRenderers while leaving their GameObjects active. As a result the new overlays were hidden from inside.

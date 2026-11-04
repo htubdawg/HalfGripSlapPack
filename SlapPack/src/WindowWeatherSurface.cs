@@ -136,15 +136,14 @@ namespace HalfGripSlapPack
 			// cockpit view. The owned precipitation must remain visible there,
 			// just like the windshield overlay; only body activation gates it.
 			renderer.enabled = Source.gameObject.activeInHierarchy && open < 1;
-			Vector3 flow = car.transform.InverseTransformDirection(Vector3.down) * (Field.Rear ? 0.025f : 0.045f)
-				+ relative * (Field.Rear ? 0.00035f : 0.0018f);
+			Vector3 flow = car.transform.InverseTransformDirection(Vector3.down) * (Field.Rear ? 0.025f : 0.10f)
+				+ relative * (Field.Rear ? 0.00035f : 0.0045f);
 			Field.Step(dt, weather.Rain, weather.Snow, Mathf.Max(0, -Vector3.Dot(relative, Normal)), Vector3.Dot(flow, Right), Vector3.Dot(flow, Up), open);
 			if (!renderer.enabled) return;
 			for (int k = 0; k < pixels.Length; k++)
 			{
-				float white = Field.Snow[k] / Mathf.Max(0.001f, Field.Snow[k] + Field.Water[k]);
-				float above = k + WindowWeatherState.Width < pixels.Length ? Field.Water[k + WindowWeatherState.Width] : 0;
-				float shine = Mathf.Clamp01(0.52f + (Field.Water[k] - above) * 0.7f);
+				float white = Field.Snow[k] / Mathf.Max(0.001f, Field.Snow[k] + Field.Water[k] + Field.Trail[k]);
+				float shine = Field.Shine(k);
 				pixels[k] = new Color32((byte)(Mathf.Lerp(shine * 0.8f, 0.88f, white) * 255),
 					(byte)(Mathf.Lerp(shine * 0.9f, 0.93f, white) * 255), (byte)(Mathf.Lerp(shine, 0.96f, white) * 255), (byte)(Field.Opacity(k) * 255));
 			}

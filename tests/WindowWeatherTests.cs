@@ -32,10 +32,10 @@ internal static class WindowWeatherTests
 				{
 					f.Step(0.05f, 1, 1, 100, 0, 0, 0);
 					for (int k = 0; k < f.Water.Length; k++)
-						Require(f.Opacity(k) <= (rear ? 0.16f : 0.20f), "Unbounded storm opacity");
+						Require(f.Opacity(k) <= (rear ? 0.24f : 0.32f), "Unbounded storm opacity");
 				}
 				float average = Enumerable.Range(0, f.Water.Length).Average(k => f.Opacity(k));
-				Require(average < 0.04f, "Full window film formed: " + average);
+				Require(average < 0.06f, "Full window film formed: " + average);
 			}
 		});
 		check("Rain and snow clear naturally without washers or blades", () =>
@@ -100,6 +100,69 @@ internal static class WindowWeatherTests
 			RunFor(f, 20, float.NaN, float.PositiveInfinity, float.NaN, float.NaN, float.NegativeInfinity);
 			Require(f.Water.All(v => v == 0) && f.Snow.All(v => v == 0), "Invalid inputs corrupted field");
 		});
+		check("Vanilla rain creates visible connected side streaks while preserving clear glass", () =>
+		{
+			var f = new WindowWeatherState(Opening, false, 71);
+			RunFor(f, 400, 0.5f, 0, 0, 0.08f, -0.10f);
+			int longest = LongestStreak(f);
+			float visible = Enumerable.Range(0, f.Water.Length).Count(k => f.Opacity(k) > 0.08f) / (float)f.Water.Length;
+			float mean = Enumerable.Range(0, f.Water.Length).Average(k => f.Opacity(k));
+			Console.WriteLine("Vanilla side rain: longest trail=" + longest + " texels, visible fraction=" + visible + ", mean opacity=" + mean);
+			Require(longest >= 6, "Rain remained isolated dots instead of connected streaks");
+			Require(visible > 0.025f && visible < 0.25f, "Wet features are too faint or cover too much glass");
+			Require(mean < 0.06f, "Streaks formed a blanket film");
+		});
+		check("Ten-minute moving downpour keeps streak opacity and coverage bounded", () =>
+		{
+			foreach (bool rear in new[] { false, true })
+			{
+				var f = new WindowWeatherState(Opening, rear, 72);
+				for (int i = 0; i < 12000; i++)
+				{
+					f.Step(0.05f, 1, 0, 100, 0.15f, -0.10f, 0);
+					if (i % 200 != 0) continue;
+					float mean = Enumerable.Range(0, f.Water.Length).Average(k => f.Opacity(k));
+					Require(mean < 0.06f, "Prolonged moving rain obscures the window: rear=" + rear + ", mean=" + mean);
+					Require(Enumerable.Range(0, f.Water.Length).All(k => f.Opacity(k) <= (rear ? 0.24f : 0.32f)), "Streak exceeded local opacity cap");
+				}
+			}
+		});
+		check("Existing rain trails respond to reversing tangential airflow", () =>
+		{
+			var right = new WindowWeatherState(Opening, false, 76);
+			var left = new WindowWeatherState(Opening, false, 76);
+			RunFor(right, 200, 0.5f, 0); RunFor(left, 200, 0.5f, 0);
+			RunFor(right, 20, 0, 0, 0, 0.14f); RunFor(left, 20, 0, 0, 0, -0.14f);
+			float Centroid(WindowWeatherState f) => Enumerable.Range(0, f.Trail.Length).Sum(k => k % WindowWeatherState.Width * f.Trail[k]) / f.Trail.Sum();
+			Require(Centroid(right) > Centroid(left) + 1, "Runoff trails ignored reversed airflow");
+		});
+
+		check("Rivulets and their trails drain away after rain stops", () =>
+		{
+			var f = new WindowWeatherState(Opening, false, 73);
+			RunFor(f, 400, 0.5f, 0, 0, 0.08f, -0.10f);
+			Require(f.Trail.Sum() > 0, "No runoff to check");
+			RunFor(f, 2400, 0, 0, 0, 0.08f, -0.10f);
+			Require(f.Trail.Sum() < 0.001f && f.Water.Sum() < 0.001f, "Runoff leaves permanent marks");
+		});
+		check("Fully lowered glass and snow-only weather cannot create rain trails", () =>
+		{
+			var open = new WindowWeatherState(Opening, false, 74);
+			RunFor(open, 400, 1, 0, 0, 0.08f, -0.10f, 1);
+			Require(open.Trail.Sum() == 0, "Runoff appeared in an open aperture");
+			var snow = new WindowWeatherState(Opening, false, 74);
+			RunFor(snow, 400, 0, 1, 0, 0.08f, -0.10f);
+			Require(snow.Trail.Sum() == 0 && snow.Snow.Sum() > 0, "Snow generated liquid streaks");
+		});
+		check("Rear glass retains shorter runoff paths than side glass", () =>
+		{
+			var side = new WindowWeatherState(Opening, false, 75);
+			var rear = new WindowWeatherState(Opening, true, 75);
+			RunFor(side, 400, 0.5f, 0, 0, 0, -0.10f);
+			RunFor(rear, 400, 0.5f, 0, 0, 0, -0.025f);
+			Require(LongestStreak(side) > LongestStreak(rear), "Rear behaves like a side window");
+		});
+
 		check("Moving weather triangle clips at sloping aperture with preserved glass coordinates", () =>
 		{
 			var opening = new[] { new PanePoint(0, 0), new PanePoint(2, 0), new PanePoint(1.5f, 1), new PanePoint(0, 1) };
@@ -110,4 +173,35 @@ internal static class WindowWeatherTests
 			Require(clipped.All(f.Contains), "Clipping crossed a sloping edge");
 		});
 	}
+
+	/// <summary>Measures the span of connected visible runoff pixels, excluding isolated droplets.</summary>
+	private static int LongestStreak(WindowWeatherState field)
+	{
+		var visited = new bool[field.Trail.Length];
+		var queue = new Queue<int>(); int longest = 0;
+		for (int k = 0; k < visited.Length; k++)
+		{
+			if (visited[k] || field.Trail[k] < 0.15f) continue;
+			int minX = k % WindowWeatherState.Width, maxX = minX;
+			int minY = k / WindowWeatherState.Width, maxY = minY;
+			visited[k] = true; queue.Enqueue(k);
+			while (queue.Count > 0)
+			{
+				int current = queue.Dequeue(), x = current % WindowWeatherState.Width, y = current / WindowWeatherState.Width;
+				minX = Math.Min(minX, x); maxX = Math.Max(maxX, x); minY = Math.Min(minY, y); maxY = Math.Max(maxY, y);
+				for (int oy = -1; oy <= 1; oy++)
+					for (int ox = -1; ox <= 1; ox++)
+					{
+						int nx = x + ox, ny = y + oy;
+						if (nx < 0 || nx >= WindowWeatherState.Width || ny < 0 || ny >= WindowWeatherState.Height) continue;
+						int next = ny * WindowWeatherState.Width + nx;
+						if (visited[next] || field.Trail[next] < 0.15f) continue;
+						visited[next] = true; queue.Enqueue(next);
+					}
+			}
+			longest = Math.Max(longest, Math.Max(maxX - minX + 1, maxY - minY + 1));
+		}
+		return longest;
+	}
+
 }
