@@ -7,13 +7,13 @@ namespace HalfGripSlapPack
 {
     internal static class SignalStalkArtwork
     {
-        internal static void Attach(Transform parent, float length, int layer, List<Object> owned)
+        internal static MeshRenderer Attach(Transform parent, float length, int layer, List<Object> owned, byte[] pixels = null, bool right = false)
         {
             var texture = new Texture2D(SignalStalkLayout.TextureWidth, SignalStalkLayout.TextureHeight, TextureFormat.RGBA32, false) {
                 name = "SlapPack hand-pixeled signal stalk", filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp
             };
             owned.Add(texture);
-            byte[] indicesInPalette = SignalStalkPixels.Build();
+            byte[] indicesInPalette = pixels ?? SignalStalkPixels.Build();
             var colors = new Color32[indicesInPalette.Length];
             for (int i = 0; i < colors.Length; i++)
             {
@@ -34,6 +34,7 @@ namespace HalfGripSlapPack
                 vertices[first + 1] = new Vector3(layout.MapX(x1), SignalStalkLayout.MapY(y0), 0);
                 vertices[first + 2] = new Vector3(layout.MapX(x1), SignalStalkLayout.MapY(y1), 0);
                 vertices[first + 3] = new Vector3(layout.MapX(x0), SignalStalkLayout.MapY(y1), 0);
+                if (right) for (int i = first; i < first + 4; i++) vertices[i].x = -vertices[i].x;
                 uv[first] = new Vector2(x0 / texture.width, y0 / texture.height);
                 uv[first + 1] = new Vector2(x1 / texture.width, y0 / texture.height);
                 uv[first + 2] = new Vector2(x1 / texture.width, y1 / texture.height);
@@ -45,7 +46,7 @@ namespace HalfGripSlapPack
             owned.Add(mesh);
             mesh.vertices = vertices; mesh.uv = uv; mesh.triangles = indices;
             mesh.RecalculateBounds(); mesh.RecalculateNormals();
-            var go = new GameObject("SlapPack.SignalStalkArtwork");
+            var go = new GameObject(right ? "SlapPack.WiperStalkArtwork" : "SlapPack.SignalStalkArtwork");
             owned.Add(go); go.layer = layer;
             go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -69,6 +70,7 @@ namespace HalfGripSlapPack
             renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+            return renderer;
         }
     }
 }

@@ -1,13 +1,35 @@
 # HalfGripSlapPack
 A collection of new things to interact with in your car.
 
-Features in development: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers.
+Features: adjustable rear-view mirror, working window cranks, turn signals, and prototype windshield wipers.
+
+## Windshield-wiper prototype
+
+Version **0.5.0** on `test/windshield-wipers` includes the tested turn-signal work and adds a shorter stalk on the right of the steering column,
+angled upward and stopping before the shifter. The grip uses the same code-drawn 128×20 pixel artwork and depth-cutout rendering as the signal stalk,
+with a windshield symbol and a speed sleeve marked **0 / I / II / III**. No external images are needed.
+
+- **Left-click and grab the end, then pull down:** spray and wipe continuously while held past the wash detent. Tiny movements on grabbing do not trigger spray.
+- **Release:** the stalk springs to neutral and the spray stops. The selected speed stays unchanged; with the dial off, the blades finish their current cycle and park.
+- **Right-click the end:** cycle **off → slow → medium → fast → off**. Speeds take 2.4, 1.4 and 0.8 seconds per complete out-and-back cycle.
+- Washing uses at least medium speed, retaining fast if already selected. Changing speed preserves blade position. Switching off finishes the cycle before parking.
+
+Two dark rubber/metal wipers are fitted to the actual front windshield triangles, with a tandem sweep constrained to the opening.
+The geometry follows the glass's slight center bend and moves with the car. It rebuilds after a body change and remains visible in the outside view.
+Washer jets are a small visual spray effect only: **rain, accumulated water, clearing masks, fluid consumption and rain sensing are not implemented**.
+The controls and selected speed start off each race. Pausing freezes the blades; losing focus or leaving the cockpit releases a held washer control.
+
+CFG section `[Wipers]` provides `Enabled` (default true), `StalkLength` (3.5 cockpit units) and `StalkUpAngle` (18 degrees).
+Restart after changing placement. Existing mirror, windows and turn-signal settings remain available.
+
+**In-game validation still required:** check reach and shifter clearance, all four dial positions, sustained wash and release at each speed,
+off commands during both halves of a stroke, blade coverage and parking, then camera/body changes, pause, focus loss and mod disable.
 
 ## Turn-signal prototype
 
 Version **0.4.6** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
 steering column, two inset green indicator lamps on the dashboard immediately left of the gear display, synchronized amber overlays at the
-stock front/rear lamp locations, and a relay tick/tock sound. **The stalk depth fix still needs an in-game playtest.**
+stock front/rear lamp locations, and a relay tick/tock sound.
 
 The stalk is hand-drawn directly in code on a **128×20 pixel grid**, using seven opaque graphite/steel colors plus transparency.
 Stepped shading, a small beveled grip, stamped arrows, metal edge highlights and chunky rubber ribs match the cockpit's low-resolution style.
@@ -180,7 +202,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The sixty-eight tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The eighty-four tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
@@ -191,6 +213,8 @@ changes, blink timing, left/right turn completion, parked/opposite-turn rejectio
 Relay tests cover click edges, cancellation, side changes, silent-phase handling, the paired three-flash sequence, sample duration,
 finite unclipped output, transient decay, and deterministic distinct tick/tock waveforms. Mixer routing and perceived sound quality require in-game testing.
 Stalk layout tests check grip alignment, undistorted grip/boot proportions across lengths, joined art sections, pivot alignment, and invalid lengths.
+Wiper tests cover dial order, distinct speeds, held washing, release and self-parking, speed changes without snapping, wash override,
+pause and invalid input, plus blade clearance through the entire sweep on trapezoidal and stock-shaped glass.
 Pixel-art checks enforce the native 128×20 resolution, small opaque palette, transparent border, and connected grip/shaft/boot silhouette.
 
 ## Window prototype playtest

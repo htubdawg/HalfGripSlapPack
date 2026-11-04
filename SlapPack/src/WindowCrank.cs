@@ -105,7 +105,7 @@ namespace HalfGripSlapPack
             SpriteRenderer symbols = __instance.forceDirectionSprite;
             if (!symbols) return;
             Grabbable held = __instance.Held;
-            if ((!(held is WindowCrank) && !(held is TurnSignalStalk)) || !__instance.viewCamera || !symbols.enabled)
+            if ((!(held is WindowCrank) && !(held is TurnSignalStalk) && !(held is WiperStalk)) || !__instance.viewCamera || !symbols.enabled)
             {
                 Restore(symbols);
                 return;

@@ -16,5 +16,8 @@
     <Compile Include="../SlapPack/src/SignalRelay.cs" Link="SignalRelay.cs" />
     <Compile Include="../SlapPack/src/SignalStalkLayout.cs" Link="SignalStalkLayout.cs" />
     <Compile Include="../SlapPack/src/SignalStalkPixels.cs" Link="SignalStalkPixels.cs" />
+    <Compile Include="../SlapPack/src/WiperState.cs" Link="WiperState.cs" />
+    <Compile Include="../SlapPack/src/WiperGeometry.cs" Link="WiperGeometry.cs" />
+    <Compile Include="../SlapPack/src/WiperStalkPixels.cs" Link="WiperStalkPixels.cs" />
   </ItemGroup>
 </Project>

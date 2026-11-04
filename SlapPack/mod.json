@@ -1,9 +1,9 @@
 {
   "id": "slappack",
   "name": "Slap Pack",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "author": "htubdawg",
-  "description": "Adjustable mirror, working stock window cranks, and a turn-signal stalk with tap/hold, latching, turn cancellation, cockpit arrows and local amber lamps.",
+  "description": "Adjustable mirror, working window cranks, turn signals, and a right-hand washer/wiper stalk with three speeds and self-parking windshield blades.",
   "gameVersion": "0.418",
   "tools": "1.0.6"
 }
