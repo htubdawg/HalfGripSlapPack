@@ -42,7 +42,7 @@ namespace HalfGripSlapPack
         internal MirrorSettings(ConfigFile config)
         {
             this.config = config;
-            MirrorFOV = config.Bind("Mirror", "MirrorFOV", 22f,
+            MirrorFOV = config.Bind("Mirror", "MirrorFOV", 16f,
                 new ConfigDescription("Rear-view camera vertical field of view in degrees. Lower values zoom in; the original is about 28 degrees.",
                     new AcceptableValueRange<float>(10f, 60f)));
             IncludeCarInterior = config.Bind("Mirror", "IncludeCarInterior", true,

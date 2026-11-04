@@ -1,6 +1,6 @@
 # SlapPack development conventions
 
-- Keep weather work on `test/windshield-weather`. Do not merge it into `test/windshield-wipers` or `main` without the user's instruction.
+- Develop changes on focused branches and merge only when the user requests it. The user authorized bringing the completed weather/wiper/signal work into `main` for 0.8.3; leave `test/windshield-wipers` unchanged.
 - Use tabs for new C# indentation and `///` summaries for new types and nontrivial methods. Avoid unrelated formatting changes.
 - Use point filtering for visible textures/copies; retain the game's hard-pixel appearance.
 - Gate routine information logs behind `[Diagnostics] VerboseLogging`. Keep warnings/errors visible. Explicitly requested geometry diagnostics may report their output path.

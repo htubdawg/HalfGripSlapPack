@@ -1,409 +1,116 @@
-# HalfGripSlapPack
-A collection of new things to interact with in your car.
+# Slap Pack for Half Grip
 
-Features: adjustable mirror, working window cranks, turn signals, and manual windshield wipers with rain/slush interaction.
+**Version 0.8.3** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
 
-## Same-frame windshield refraction — 0.8.2
+More things to grab in your car: adjust the rear-view mirror, wind the windows down, use the turn signals, and clear rain and slush
+with working windshield wipers. Rain builds up on the glass and distorts the view until you wipe it away.
 
-Version 0.8.2 reduces CPU work and mesh uploads while preserving the 0.8.1 appearance and settings:
+## In the cockpit
 
-- Cache field-sampling neighbors once, instead of converting/clamping every vertex on each field refresh.
-- Share one sine/cosine pair across both blades; parked blades skip unchanged geometry uploads. Washer animation is independent.
-- Separate static Float32 positions/normals from dynamic Float32 UVs and packed RGBA colors. Only owned generated meshes are rebuilt;
-  layout checks retain the legacy upload path if the requested streams are unsupported. UV uploads are skipped only when values are exactly unchanged.
-- Keep scene-copy resolution, per-frame copy/draw, point filtering, 160×80 simulation at 20 Hz, mesh density, tint and distortion strength unchanged.
+Use the game's normal hand/grab control.
 
-A CPU-only comparison against 0.8.1 found bit-identical offsets/colors/wet ordering for 13,041 samples and 57,176 identical wiper points.
-Five-run medians: 400 field refreshes **232.26 → 136.71 ms** (41.1% less); 100,000 moving-blade point calculations **121.26 → 23.05 ms**
-(81.0% less). These exclude Unity mesh APIs, simulation, RenderGraph and GPU work, and are **not overall FPS improvements**.
-Split-stream rendering and actual frame-time savings still require an in-game test. Leave `VerboseLogging` and `RefractionDebugTint` false for normal play.
+| Control | How to use it |
+|---|---|
+| **Rear-view mirror** | Grab the casing and drag to aim it. Release to save the position. Right-click while hovering or holding to reset |
+| **Window cranks** | Grab either door's crank and move your hand in circles. Clockwise lowers that window; counterclockwise raises it |
+| **Turn-signal stalk** (left) | Grab the end and move down for left, up for right. A halfway tap gives three flashes; full travel latches it. Return to neutral to cancel |
+| **Wiper speed sleeve** (right) | Hold right-click on the end and drag up/down through **0 / I / II / III**: off, intermittent, continuous, fast |
+| **Washer stalk** (right) | Left-click and pull down to spray and wipe. Release stops the spray; a quick pull completes at least three full wipe cycles |
 
-Version 0.8.1 fixes two causes of disappearing distortion: clamping the water quantity also flattened its surface, and point filtering
-could hide fractional-texel sampling shifts. Persistent droplet **relief** now lives separately from water mass, so saturated glass retains
-surface detail. Impacts/washer fluid build relief; runoff transports it, it gradually relaxes, and the rubber clears it. No independent
-wave animation is added. Small field slopes receive a bounded optical response, and meaningful vertex offsets are quantized to whole scene-copy
-texels (tiny numerical noise remains zero). Quantization is cached with the field/dimensions; it is not recomputed per vertex every frame.
-The added scalar field remains inside the existing 20 Hz simulation budget.
+The mirror now defaults to a **16° field of view**. Its adjustment is saved between races. If you have the Smart Mirror upgrade,
+auto-aim stays active until you manually move or reset the mirror.
 
-SlapPack now uses the public **WeatherView v1** API from [Open World's API test branch](https://github.com/htubdawg/HalfGripOpenWorld/tree/claude/nifty-babbage-6o4kay)
-(Open World 0.24.0+). Use that branch for Open World testing; neither mod branch is merged by this work. The old private Sky/Storms reads are
-removed. A version/signature-checked public delegate returns final rain, snow and world-space wind without per-poll reflection/boxing.
-Vanilla works without Open World; absent/inactive/unsupported APIs use vanilla flags, with a warning when an installed Open World lacks v1.
+The two windows move independently and start fully raised each race. Turn signals have dashboard arrows, exterior lamps and a relay
+click, and cancel after you complete the indicated turn. The wipers finish their stroke before parking when switched off.
 
-### Refraction diagnosis
+### Rain and snow
 
-For the next playtest, enable the real effect and verbose logging, then restart:
+Rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
+The blades clear their swept area, leaving water around the edges. Water bends the view through the glass using the current frame,
+with point filtering to match the game's pixels.
 
-```ini
-[Wipers]
-RefractionEnabled = true
-RefractionCaptureWidth = 320
-RefractionStrength = 0.008
+Vanilla rain and snow work on their own. **Continuous mode (II)** is intended for vanilla rain; use intermittent for lighter weather
+and fast for heavier rain. Mode selection stays manual.
 
-[Diagnostics]
-VerboseLogging = true
-RefractionDebugTint = false
-```
+[Open World](https://github.com/htubdawg/HalfGripOpenWorld) weather is supported through its public **WeatherView v1** API, including
+variable rain/snow intensity and world wind. That API is currently supplied by its
+[0.24.0+ API test branch](https://github.com/htubdawg/HalfGripOpenWorld/tree/claude/nifty-babbage-6o4kay).
+Older builds without the API use vanilla weather flags and cannot provide Open World's variable intensity.
 
-Every five seconds, `Windshield refraction diagnostics` reports cumulative **callbacks/queued/records/copies/draws**, the copy size, last draw
-frame, wet/visible/shifted vertex counts and the mean/peak displacement in **scene-copy texels**. These count command submission, not measured
-GPU pixel coverage. Provider changes should report **Open World WeatherView v1** when that world is active. If counters do not advance, or
-`shifted` is zero on wet glass, the log now separates that from a weak-looking effect.
+## Install
 
-For a direct visual check, set `RefractionDebugTint = true` and restart: the refraction draw uses a solid magenta wet mask (a white source texture, independent of scene alpha). This
-can prove visible mesh/shader output where counters alone cannot; it does not prove the scene copy is visually correct. Leave it false for normal play. If magenta does not appear, supply the new log;
-if it does appear but distortion is still subtle, the sampled optics can be assessed separately. This diagnostic creates no extra camera.
+You need Windows and the game on Steam.
 
+### Easy way: the installer
 
-The weather experiment stays on **`test/windshield-weather`**, based on `test/windshield-wipers`. No branches have been merged.
-Version 0.8.0 replaces the auxiliary-camera experiment with a same-frame scene-color copy from the existing cockpit world camera.
+1. Download `HalfGrip-Mods-Installer.exe` from the [HalfGripMods Releases page](https://github.com/4l3x4nd3r0/HalfGripMods/releases)
+   (the newest release called **installer**) and open it.
+2. Close the game. In the installer, press **+ ADD**, paste `https://github.com/htubdawg/HalfGripSlapPack`, then press **ADD**.
+3. Find **Slap Pack** and press **INSTALL**.
+4. Start the game from Steam. The first start compiles the mod, which takes a few seconds. The main-menu mod manager should list **Slap Pack**.
 
-A `RenderPipelineManager.beginCameraRendering` handler queues a URP `ScriptableRenderPass` for `car.fpvCamera` only. Its
-`RecordRenderGraph` implementation runs after opaque objects and the sky. URP's built-in point blitter downsamples that color to a small
-transient texture, then a dependent pass draws the water mesh into the current camera color with read-only camera depth. Both passes
-declare their texture dependencies. The normal transparent pass follows, so rain particles are drawn once. The cockpit/HUD retain their
-normal rendering. No camera objects, render requests, original-camera changes, or renderer-index reflection remain.
+The installer sets up BepInEx and HalfGripTools if they are missing. Open it again to update; **CHECK NOW** checks for updates straight away.
+More about installing and removing mods is in the [HalfGripMods README](https://github.com/4l3x4nd3r0/HalfGripMods#install).
 
-The supplied 0.419 URP assembly executes RenderGraph and its compatibility-mode `Execute` methods are compiled stubs. This feature therefore
-implements RenderGraph directly. Unsupported cameras, missing resources, unavailable stock materials, or a pass that does not execute
-warn once and retain the tint fallback. Scene textures belong to RenderGraph and are not kept between frames. Camera callbacks are removed
-on body changes, disable, and unload. Open World and Helicopter hooks continue to see only the existing game cameras.
+### Manual steps
 
-The refraction mesh now matches the **160×80 water grid** instead of roughly 1,000 triangles. Water, persistent relief and impact gradients drive offsets;
-there is no independent rotating sine wave. Wet samples outside the current view do not request a color copy. Normals/alpha are cached
-until a field revision changes (the simulation remains capped at 20 Hz); screen projection follows the actual rendered camera every frame.
-This is still mesh-based refraction, not a per-pixel normal-map shader. Its finer mesh adds CPU projection/vertex work that needs profiling.
+1. Install BepInEx and [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6+** if needed. Steps 1 and 2 of the
+   [HalfGripTools README](https://github.com/4l3x4nd3r0/HalfGripTools#install) cover both.
+2. Download this repository (**Code > Download ZIP**) and unzip it.
+3. Delete any older `SlapPack` folder in `<game>\BepInEx\HalfGripMods\`, then copy the **`SlapPack`** folder from the download into it.
+4. Start the game and wait for the main menu. The mod manager should list **Slap Pack**.
 
-The copy and water overlay use **point filtering**. Texture orientation follows RenderGraph's source/destination origin metadata and is
-handled automatically; there is no player-facing flip option. Water retains at least **50% of its normal tint opacity** while refraction
-works, and snow/slush retains its opacity. A failed refraction path returns to full tint on the next field update.
+> [!IMPORTANT]
+> **Copy only the `SlapPack` folder, not the whole download.** The ZIP contains `HalfGripSlapPack-main\`, with `SlapPack` inside it.
+> `mod.json` must sit directly inside `HalfGripMods\SlapPack\`.
 
-To avoid selecting an assumed transparent shader variant, refraction clones a **loaded stock rain material** using URP Particles/Unlit,
-keeping its shader keywords. It requires a supported transparent multiply-color variant without depth fading. If none is present, it warns
-and keeps the tint. This runtime guard avoids assuming a stripped variant exists; final rendering still needs an in-game check.
-
-```ini
-[Wipers]
-WeatherEffects = true
-RefractionEnabled = true
-RefractionCaptureWidth = 320
-RefractionStrength = 0.008
-RainObscuration = 1
-
-[Diagnostics]
-VerboseLogging = false
-```
-
-Restart after changing graphics settings. The existing width name is retained for config compatibility (320–1280 pixels); the new-install
-default is 320. `RefractionCaptureHz` and `RefractionFlipY` are retired and ignored if old config entries remain. The copy is always from the
-current rendered frame. Strength allows 0.001–0.02; `RainObscuration` allows 0.5–3. Set `RefractionEnabled = false` for an A/B comparison.
-Routine attachment/integration logs require verbose logging; warnings/errors remain visible. Explicit window geometry reports still log
-their output location when that separate diagnostic is requested.
-
-This removes extra scene culling/draw submissions and deliberately stale images. It is not free: forcing sampleable color can require an
-intermediate camera target/final blit, plus the small downsample and water draw. No game FPS improvement is claimed without a playtest.
-Water simulation freezes when paused; the same-frame pass can still run for visible wet glass to keep the paused image consistent.
-
-## Precipitation and wipers
-
-Rain deposits water/impact highlights; snow accumulates as wipeable slush. Car-relative airflow changes streak direction and exposure,
-with adhered-water runoff capped at 0.025 glass-plane units/sec and no extra speed-dependent drying. The actual rubber blade interval clears
-both layers; parked blades do not clear glass, and unswept areas retain buildup. Washer pulls add water at the nozzle targets.
-
-Selection stays manual: intermittent (1.4-second cycle plus 2.5-second default pause), continuous (1.4 seconds), and fast (0.8 seconds).
-Vanilla precipitation uses fixed normalized intensity 0.5. Open World's optional read-only adapter uses its eased 0–1 local precipitation,
-0.02 cutoff, altitude-dependent rain/snow split and prevailing wind. Initial overlapping tuning bands remain light/moderate/heavy for the
-three modes. These do not switch the dial automatically. No game assets are distributed.
-
-Open World integration uses the public `HalfGripOpenWorld.WeatherView` v1 contract from the API test branch. See
-[the integration contract and checks](docs/public-weather-api.md). SlapPack does not recompute snow share, origin height, cutoff or weather
-intensity from private fields or particle budgets. An inactive public API falls back to the ordinary vanilla profile.
-
-## In-game validation for 0.8.1
-
-- Compare the same rainy location with refraction off/on at width 320, then 640. Check frame-time consistency as well as FPS.
-- In vanilla and Open World, drive/turn/look around with saturated glass: the distorted world should move in the same frame; check orientation,
-  color matching, depth/occlusion, distant terrain, drops and wiped arcs. There should be no second/lagged set of rain particles.
-- Check clear/dry glass and looking away from the wet front glass; no scene-color copy should be needed. Pause, change cameras/bodies, and unload.
-- If Helicopter is installed, test its camera interaction. No auxiliary camera should exist or reach another mod's camera callbacks.
-- With Smart Mirror, verify auto-aim remains enabled on attach and on grab/release without movement. Move the mirror or reset it to enter
-  manual control, then unload to restore only auto-aim components that SlapPack actually suspended.
-- Inspect warnings, and use `VerboseLogging = true` for binding details. GPU RenderGraph execution, stock material eligibility, orientation,
-  shader behavior, live optional-mod compatibility, and performance cannot be validated by the model tests here.
-
-See [STATUS.md](STATUS.md) for the handover and outstanding runtime checks. Install by copying `SlapPack` over
-`BepInEx/HalfGripMods/SlapPack` and restarting the game.
-
-## Windshield-wiper prototype
-
-Version **0.5.3** on `test/windshield-wipers` includes the tested turn-signal work and adds a shorter stalk on the right of the steering column,
-angled upward and stopping before the shifter. The grip uses the same code-drawn 128×20 pixel artwork and depth-cutout rendering as the signal stalk,
-with a windshield symbol and a speed sleeve marked **0 / I / II / III**. No external images are needed.
-
-- **Left-click and grab the end, then pull down:** spray and wipe continuously while held past the wash detent. Tiny movements on grabbing do not trigger spray.
-- **Release:** the stalk springs to neutral and the spray stops. Each washer pull guarantees **at least three full out-and-back wipe cycles**, including
-  cycles completed while held. A quick tap finishes all three automatically. A longer hold keeps wiping, then finishes the current cycle on release.
-  The blades then park if the dial is off, or return to the selected speed. A partial stroke already underway when washing starts does not count as a full cycle.
-- **Hold right-click on the end, then drag up/down:** rotate the speed sleeve up through **off → slow → medium → fast**, or back down to off.
-  Clicking without moving leaves the speed unchanged. The dial clicks between **exactly four fixed positions**, with a quiet mechanical click per change.
-  The sleeve and markings stay on a detent even while held; there are no intermediate positions. Off and fast are hard stops.
-  The native hand stays on the grip and the cursor returns there on release. The three running positions are:
-  **slow/intermittent** (one normal 1.4-second wipe, then a 2.5-second parked pause), **medium/continuous** (1.4-second wipes without a pause),
-  and **fast** (0.8-second wipes without a pause). Intermittent changes wipe frequency, while fast increases blade velocity.
-- Washing interrupts any intermittent pause immediately. Its minimum wipe burst uses continuous normal speed, retaining fast if already selected.
-  Afterward, intermittent mode resumes with a parked pause. Changing speed preserves blade position.
-  Switching off finishes the washer minimum (if pending) and the current cycle before parking.
-
-Two dark rubber/metal wipers are fitted to the actual front windshield triangles, with a tandem sweep constrained to the opening.
-The geometry follows the glass's slight center bend and moves with the car. It rebuilds after a body change and remains visible in the outside view.
-The driver washer nozzle is offset and aimed inward, separately from the blade pivot; the passenger spray retains its original trajectory.
-In 0.6.0 the washer spray also deposits fluid on the glass and the blades clear accumulated water/slush as described above.
-Fluid consumption and automatic rain sensing are not implemented.
-The controls and selected speed start off each race. Pausing freezes the blades; losing focus or leaving the cockpit releases a held washer control.
-
-CFG section `[Wipers]` provides `Enabled` (default true), `IntermittentPause` (2.5 seconds), `StalkLength` (3.5 cockpit units) and `StalkUpAngle` (18 degrees).
-Restart after changing timing or placement. Existing mirror, windows and turn-signal settings remain available.
-
-**In-game validation still required:** check reach and shifter clearance, all four dial positions, sustained wash and release at each speed,
-off commands during both halves of a stroke, blade coverage and parking, then camera/body changes, pause, focus loss and mod disable.
-
-## Turn-signal prototype
-
-Version **0.4.6** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
-steering column, two inset green indicator lamps on the dashboard immediately left of the gear display, synchronized amber overlays at the
-stock front/rear lamp locations, and a relay tick/tock sound.
-
-The stalk is hand-drawn directly in code on a **128×20 pixel grid**, using seven opaque graphite/steel colors plus transparency.
-Stepped shading, a small beveled grip, stamped arrows, metal edge highlights and chunky rubber ribs match the cockpit's low-resolution style.
-The grip and boot retain their proportions as the shaft stretches to the configured length. Its placement and native grab point are preserved.
-No external image file is required. Future cockpit artwork should follow this code-drawn, limited-palette approach.
-The stalk uses an alpha-cutout material with depth writes: the steering wheel covers it, while the instrument cluster and moving needles stay behind it.
-
-The stalk extends beyond the wheel rim and rests at an upward angle, clear of the radio. Its enlarged grip hitbox takes priority over
-the wheel where they overlap. It moves 14 degrees to each detent; input follows the actual lever arc so both directions have equal sensitivity.
-
-Grab the stalk's end with the normal hand control and move it up/down:
-
-- **Down = left; up = right.** Halfway starts the signal without latching.
-- A quick halfway tap returns the stalk to neutral on release and completes three flashes total. Holding halfway keeps blinking
-  beyond that count; release then ends the signal. Releasing early finishes the remaining flashes.
-- Full travel latches the signal and keeps the stalk at that end after release. Pull it back to neutral to cancel manually.
-- Automatic cancellation requires steering into the indicated turn, actual forward travel and heading change, then steering returning
-  near center. Turning the wheel while parked does not cancel. Holding the stalk manually prevents automatic return until release.
-
-Cockpit indicators use smaller pixel-style arrow outlines in dark beveled lenses. Both remain dimly visible when off, with a restrained
-green glow on the active lamp. The pair is compacted to fit the marked panel between the wheel and gear display, anchored to that display's
-frame rather than the wheel rim. They blink with the exterior overlays, which are attached alongside the existing lamp meshes. The original headlights,
-brake-light materials, steering, and car physics are not modified. The stalk stays fixed to the column rather than spinning with the wheel.
-Signals continue in the outside view while the interior stalk/arrows are hidden. Changing bodies rebuilds the exterior overlays.
-Disabling Slap Pack removes the stalk, arrows, overlays, and audio. Signals are local only: they are not replicated to remote
-multiplayer cars, and hazards are not implemented.
-
-A short mechanical **tick** sounds when the lamp turns on and a lower **tock** when it turns off. Audio is synthesized locally and routed
-through the game's cabin/SFX mixer. It plays in the cockpit only, stops when paused or disabled, and does not replay missed clicks on return.
-Sound generation failure logs a warning without disabling the visual signals.
-
-Settings in `BepInEx/config/halfgrip.slappack.cfg` (restart after changing timing/thresholds):
-
-```ini
-[TurnSignals]
-Enabled = true
-ShortFlashes = 3
-BlinkHalfPeriod = 0.4
-CancelArmSteering = 12
-CancelCenteredSteering = 4
-CancelMinimumTurn = 15
-StalkExtraLength = 1.8
-StalkUpAngle = 30
-ClickSound = true
-ClickVolume = 0.35
-```
-
-`BlinkHalfPeriod` is seconds for each on/off phase (0.4 gives 75 flashes/minute). Steering and heading thresholds are degrees.
-`StalkExtraLength` is cockpit units beyond the measured wheel radius; `StalkUpAngle` is the neutral upward angle in degrees.
-Restart after changing stalk placement.
-`ClickVolume` ranges from 0 to 1 and also respects the game's mixer volume. Set `ClickSound = false` to mute the relay.
-Cancellation requires forward speed above 1 game unit/second. Custom bodies without recognized lamp meshes retain the cockpit indicators
-and log a warning about missing exterior locations.
-
-### Turn-signal playtest
-
-- Confirm the stalk emerges from the left of the column, stays clear of the wheel rim, and can be grabbed without steering the wheel.
-- Check both halfway tap directions give three flashes and return to neutral. Hold each halfway for several seconds, then release.
-- Check full down/up latches until manually centered, and that all cockpit/exterior lamps blink on the correct side in sync.
-- Drive left and right turns, recenter steering, and confirm the stalk and lamps cancel. Repeat wheel movement while parked and confirm
-  it stays latched. If cancellation feels too early/late, report the turn and configured thresholds.
-- Check the compact lamp pair fits the marked dashboard space just left of the gear display, clear of the wheel rim and gauges.
-- Check both off-state lenses remain visible and the active arrow is readable without the old oversized solid green shape.
-- Listen for one tick/tock pair per blink, including short taps, held-half signals and cancellation. Check pause, outside view, mute and
-  volume settings, and confirm the other car audio is unaffected. Report whether the default relay volume is too loud or too quiet.
-- Switch camera views and body models, pause/lose focus while holding the stalk, and disable Slap Pack to check cleanup.
-- Check mirror, window cranks, shifting, braking, headlights, and their hand indicators still behave normally.
-
-## Window-crank development branch
-
-`test/window-cranks` starts from the working mirror branch. Version **0.3.2** anchors the crank direction symbols over the held hand on
-both doors. The window prototype and rotation correction have been reported working in-game; the symbol-placement fix still needs a playtest.
-
-Look toward either door, grab its existing crank artwork with the normal hand control, and move the hand in circles. Clockwise lowers
-that window; counterclockwise raises it. The two windows move independently, stop at the ends, and start fully raised each race.
-Release leaves the window at its current height. Three crank turns span the default full travel.
-
-The cranks are painted into the door atlas. Slap Pack locates the artwork through the original UVs, replaces its static image in a
-private material/texture copy, and rotates an isolated copy of that same artwork at its original location. No game artwork is shipped
-with the mod. Unsupported cabin textures are skipped with a warning instead of modifying unrecognized doors.
-
-Only the two matching front door glass regions receive a faint blue-gray **4% opacity** effect. Lowered glass is clipped to its original
-opening so it disappears into the door rather than protruding through the frame. The windshield, rear glass, source meshes, and shared
-glass material are unchanged. This prototype changes visible glass only; it does not change glass damage, bullet collision, rain, or audio.
-
-Settings in `BepInEx/config/halfgrip.slappack.cfg` (restart after editing tint or travel):
-
-```ini
-[Windows]
-Enabled = true
-TintOpacity = 0.04
-TurnsForFullTravel = 3
-WriteGeometryReport = false
-```
-
-Tint opacity allows 0–0.15; travel allows 1–8 turns. Disabling windows or unloading Slap Pack removes the added panes/controls and restores
-the original door materials. Camera switching retains travel; changing car models rebuilds the window bindings.
-
-## Optional window geometry diagnostics
-
-The supplied runtime GPU report identified the stock crank UVs and front door panes for both stock cabin meshes. To collect another
-report for troubleshooting, set `WriteGeometryReport = true`, start a race, and look for `Window-crank geometry report written to`
-in `BepInEx/LogOutput.log`. The report folder is:
+Correct layout:
 
 ```text
-<game>/BepInEx/SlapPack/WindowDiagnostics/<scene>-<timestamp>/
-  geometry.txt
-  texture-*.png
+Half Grip Demo\
+└── BepInEx\
+    └── HalfGripMods\
+        └── SlapPack\
+            ├── mod.json
+            └── src\
 ```
 
-Share that folder for inspection; it contains the complete cabin/car hierarchy, mesh vertices/UVs/triangles, and material
-texture previews at up to 1024 pixels. Version 0.2.1 also tries a synchronous GPU-buffer read for meshes whose CPU copy was discarded;
-unsupported formats or readback failures are recorded in `geometry.txt`. Shared mesh data and usage flags are never modified.
-These are private game reference assets:
-keep the reports out of the mod repository and distribution archives. The diagnostic does not change shared meshes, materials, or glass.
-Try each car model you want supported, since their doors can differ.
+`<game>` is usually `C:\Program Files (x86)\Steam\steamapps\common\Half Grip Demo`.
+You do not need the repository's tests, documentation, `.csproj`, `bin` or `obj` folders to play.
 
-The diagnostic runs once per spawned player car. Turn it off after troubleshooting; it can pause the game briefly while reading GPU data.
+## Settings
 
-The first prototype implements the adjustable **interior rear-view mirror** for Half Grip **0.418**, using **HalfGripTools 1.0.6+**.
-It compiles against the game's reference assemblies; in-game behavior is still awaiting validation.
+Settings are written to `BepInEx\config\halfgrip.slappack.cfg` after the first launch. Close the game before editing it in Notepad,
+then restart. Existing saved settings are kept when updating: to use the new mirror default, set `MirrorFOV = 16` under `[Mirror]`.
 
-## Install and try the mirror
+| Setting | Default | What it does |
+|---|---|---|
+| `Mirror.MirrorFOV` | `16` | Rear-view field of view in degrees (10–60). Lower values zoom in |
+| `Mirror.IncludeCarInterior` | `true` | Includes the car's 3D cabin in the mirror view |
+| `Mirror.Sensitivity` | `8` | How quickly the mirror moves while dragging |
+| `Mirror.HorizontalLimit` / `VerticalLimit` | `30` / `20` | Maximum mirror adjustment in degrees |
+| `Windows.Enabled` | `true` | Enables the two window cranks and moving glass |
+| `Windows.TintOpacity` | `0.04` | Tint on raised side-window glass |
+| `Windows.TurnsForFullTravel` | `3` | Crank turns from fully raised to fully lowered |
+| `TurnSignals.Enabled` | `true` | Enables the signal stalk, arrows and exterior lamps |
+| `TurnSignals.ClickSound` / `ClickVolume` | `true` / `0.35` | Relay sound and volume |
+| `Wipers.Enabled` | `true` | Enables wipers and their controls |
+| `Wipers.WeatherEffects` | `true` | Enables rain/slush buildup and wiping |
+| `Wipers.IntermittentPause` | `2.5` | Seconds parked between wipes in mode I |
+| `Wipers.RainObscuration` | `1` | Strength of water obscuration |
+| `Wipers.RefractionEnabled` | `true` | Water distortion; disabling it keeps the tint overlay |
+| `Wipers.RefractionCaptureWidth` | `320` | Scene-copy width (320–1280). Higher values give finer detail at more cost |
+| `Wipers.RefractionStrength` | `0.008` | Strength of the distortion |
+| `Diagnostics.VerboseLogging` | `false` | Detailed binding, weather-provider and rendering logs |
+| `Diagnostics.RefractionDebugTint` | `false` | Magenta wet-mask diagnostic; leave off for normal play |
 
-Copy the `SlapPack` folder into `<game>/BepInEx/HalfGripMods/` alongside your other HalfGripTools mods. The layout must be
-`HalfGripMods/SlapPack/mod.json` and `HalfGripMods/SlapPack/src/*.cs`.
-HalfGripTools compiles the source when the game starts.
-The development `.csproj` and its `bin`/`obj` folders are not needed in the game. Restart the game after changing source.
+## Notes
 
-- In the cockpit, grab the mirror casing with the normal hand/grab control and drag. The casing and glass tilt together
-  around the top mount, moving the mirror's center and adjusting the rearward view. Its grab hitbox follows the visible mirror.
-- Release to retain and save the adjustment, leaving the hand cursor at the mirror's grip point. Right-click while hovering over
-  or holding the mirror to reset both axes.
-- Defaults allow 30 degrees horizontally and 20 degrees vertically. Sensitivity and limits are configurable in
-  `BepInEx/config/halfgrip.slappack.cfg`; `SavedYaw` and `SavedPitch` store the shared setting across races.
-- Pausing, losing focus, releasing the hand, or switching out of the cockpit cancels an active drag.
-- The mirror stays behind overlapping hand cursor sprites, including hover, hold, and release transitions, as its angle changes.
-- `MirrorFOV = 22` sets the rear-view camera's vertical field of view in degrees (range 10–60). Lower values make the rearward
-  view larger and narrower. The original is about 28 degrees; unloading restores the FOV captured before Slap Pack changed it.
-- `IncludeCarInterior = true` (default) in the CFG's `[Mirror]` section includes the layers used by the car's 3D cabin models in
-  the rear-view camera. Set it to `false` to restore the original layer inclusion. This changes the rear-view camera only; it does
-  not add the separate 2D cockpit/hand layer. Other geometry sharing the cabin's layer can also appear in the reflection.
-- If the Smart Mirror upgrade is active, manual adjustment suspends its auto-aim. Auto-aim resumes when Slap Pack unloads.
-
-Example in `BepInEx/config/halfgrip.slappack.cfg` (edit while the game is closed, then restart):
-
-```ini
-[Mirror]
-MirrorFOV = 22
-IncludeCarInterior = true
-```
-
-The mirror surface tilts by half the camera adjustment angle, approximating how reflection doubles the change in viewing direction.
-Right-click reset restores both its original pose and view. Unloading also restores the original hierarchy and removes the added hitbox.
-Additional visual hints and the other planned controls are not implemented yet. HalfGripTools does not load gameplay mods in speedrun mode.
-
-## Build and check
-
-Use the .NET 8 SDK, a sibling `HalfGripRefs` checkout, and a built HalfGripTools DLL. The private game DLLs remain in HalfGripRefs;
-do not commit or distribute them with this mod.
-
-```bash
-# In the prepared cloud environment, activate dotnet first:
-source /workspace/setup-halfgrip/activate.sh
-
-# Build HalfGripTools into a writable scratch folder if needed:
-dotnet build /workspace/setup-halfgrip/dependencies/HalfGripTools/HalfGripTools/HalfGripTools.csproj -c Release \
-  -p:GameDir=/workspace/HalfGripRefs/game -p:OutDir=/workspace/work/slappack/tools/
-
-# From the HalfGripSlapPack repository:
-dotnet build SlapPack/SlapPack.csproj -c Release \
-  -p:HalfGripToolsDll=/workspace/work/slappack/tools/HalfGripTools.dll
-dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
-```
-
-For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The 138 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
-hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
-The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
-and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
-Additional tests check half-precision GPU vertex decoding, including subnormal and invalid values. These tests do not exercise Unity's
-GPU readback API; that path requires an in-game diagnostic run.
-Turn-signal tests cover direction mapping, exact short-flash completion, held-half behavior, full detents, manual cancellation, side
-changes, blink timing, left/right turn completion, parked/opposite-turn rejection, held cancellation override, and invalid inputs/settings.
-Relay tests cover click edges, cancellation, side changes, silent-phase handling, the paired three-flash sequence, sample duration,
-finite unclipped output, transient decay, and deterministic distinct tick/tock waveforms. Mixer routing and perceived sound quality require in-game testing.
-Stalk layout tests check grip alignment, undistorted grip/boot proportions across lengths, joined art sections, pivot alignment, and invalid lengths.
-Wiper tests cover all speed detents, distinct speeds, held washing, release and self-parking, speed changes without snapping, wash override,
-pause and invalid input, plus blade clearance through the entire sweep on trapezoidal and stock-shaped glass.
-Knob tests cover stationary clicks, up/down dragging, steady holds, detent hysteresis, hard stops without windup, release/re-grab behavior,
-invalid input, phase continuity and exactly four discrete positions throughout a drag. Washer tests cover short taps, long holds, partial strokes,
-repeated pulls, off commands, and speed restoration after the three-cycle minimum. Spray tests check the inward driver adjustment and unchanged passenger trajectory.
-Intermittent tests verify normal-speed strokes followed by motionless parked pauses, continuous modes without delays, mode changes during a pause,
-washer overrides and return to intermittent operation, and matching results across large versus small frame steps.
-Pixel-art checks enforce the native 128×20 resolution, small opaque palette, transparent border, and connected grip/shaft/boot silhouette.
-
-## Window prototype playtest
-
-- Confirm the log reports `Windows bound` and that both cranks appear in their original locations without duplicate artwork or a bright square patch.
-- Look toward each door and try several clockwise/counterclockwise turns. Check that the visible crank and hand stay aligned, each window moves
-  independently, and reversing at the stops responds immediately.
-- Confirm clockwise and counterclockwise hand movement rotates the visible crank in the same direction on both doors.
-- While cranking either door, confirm the direction symbols stay over the hand as the view turns, instead of appearing on the dashboard.
-  Release and try steering/shifting to confirm their normal indicators still work.
-- Check tint at fully raised, half raised, and fully lowered states. The upper edge should descend into the door; windshield and rear glass should
-  remain unchanged. Report whether the default 4% opacity is visible enough.
-- Release/re-grab, pause, lose focus, switch to the outside camera and back, restart a race, and try the other stock car model.
-- Disable Slap Pack and confirm original door artwork/materials return and all added tint and controls disappear.
-- Check existing mirror, steering, gun, and nearby cockpit controls still work.
-They do not validate Unity input, scene binding, or rendering.
-
-## In-game acceptance checks
-
-- Start a race and confirm the log reports `Adjustable mirror attached` once for the cockpit.
-- Drag each axis independently. Confirm the view moves in the expected direction and the hand targets the mirror only.
-- Confirm the casing and glass move together around the fixed top mount, with no separation or clipping. Check that the hitbox and
-  held hand follow the mirror at all four adjustment extremes, and that repeated drags do not drift when the housing tilts.
-- At each extreme, hover, grab, release, and pass the idle hand across the glass. Confirm the screen stays behind every hand pose
-  without flickering, and that cursor screen position and release behavior remain unchanged.
-- Reach each stop and reverse direction; adjustment should respond immediately without a dead zone.
-- Release, grab again, and right-click reset both while hovering and while holding. Check for jumps or drifting.
-- Drag well beyond an adjustment stop, then release. Confirm the hand remains at its visible grip instead of jumping to the hidden
-  input cursor, and that the next small mouse movement starts from that location. Repeat with a normal drag and after resetting while held.
-- Pause or lose focus during a drag, release the button, then return. Confirm no stuck hand or continued adjustment.
-- Switch to the outside camera and back; restart the race, change tracks, and restart the game. Confirm the setting survives.
-- Try with and without the Smart Mirror upgrade. Disable mods through HalfGripTools and confirm the original view and auto-aim return.
-- Check normal steering, shifting, and other nearby cockpit interactions remain usable.
-- Compare `MirrorFOV = 22` with `28` and confirm only the reflection changes. Confirm disabling Slap Pack restores the original FOV.
-- With `IncludeCarInterior = true`, angle the mirror toward the cabin and check the 3D interior is visible for each car model.
-  Repeat with `false` to verify the original layer inclusion. Check the forward camera, hand, and mirror screen remain unchanged,
-  and confirm disabling Slap Pack restores the rear-view camera's original layer inclusion.
-
-Compile checks and the adjustment tests pass in the cloud environment. The camera-only prototype has been reported working in-game;
-the moving housing/glass update still needs an in-game playtest. The game runtime is not available here, so visual alignment, clipping,
-hand tracking, and reset/unload behavior must be checked in that playtest.
+- **Troubleshooting:** check `BepInEx\LogOutput.log` for `Loaded Slap Pack` and any warnings/errors. For weather problems, enable
+  `Diagnostics.VerboseLogging`, restart, and share the log. [Development notes](docs/development.md) explain the diagnostics.
+- **Multiplayer:** turn signals are local visuals and are not replicated to other players' cars.
+- **Limitations:** windows change the visible glass, not bullet collision or sound. There is no persistent ice/frost, washer-fluid
+  consumption, automatic rain sensing or hazard-light control. Unsupported door artwork is skipped with a warning.
+- **Removing the mod:** close the game and delete `SlapPack` from `BepInEx\HalfGripMods\`, or use the installer.
+- **Speedrun mode:** HalfGripTools does not load gameplay mods in speedrun mode.
+- **For developers:** see [build, validation and rendering notes](docs/development.md) and the [public weather API contract](docs/public-weather-api.md).

@@ -1,6 +1,6 @@
-# SlapPack handover — 0.8.2
+# SlapPack handover — 0.8.3
 
-Weather work is isolated on `test/windshield-weather`, based on the existing `test/windshield-wipers` controls. No branches are merged by this work. The review PR is a draft for inspection/playtesting; the branch stack is intentional under the user's instruction.
+The user authorized merging the completed feature branch into main. PR #2 targets `main` directly, incorporating the stacked signal/wiper/weather work without updating the wiper test branch. Release 0.8.3 changes the default mirror FOV to 16°, retaining existing saved config values, and replaces the player README with features, controls, simplified installer/manual steps and common settings. Build/rendering/diagnostic details are in `docs/development.md`.
 
 ## Performance pass (0.8.2)
 
