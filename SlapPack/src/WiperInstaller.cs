@@ -20,6 +20,7 @@ namespace HalfGripSlapPack
         private WiperState state;
         private WiperBlades blades;
         private WindshieldWeather weather;
+        private WindshieldRefractionSettings refractionSettings;
         private readonly List<Object> owned = new List<Object>(), bladeOwned = new List<Object>();
         private float nextScan;
         private int glassSignature;
@@ -27,6 +28,7 @@ namespace HalfGripSlapPack
         internal void Initialize(ModContext ctx)
         {
             context = ctx;
+            refractionSettings = new WindshieldRefractionSettings(ctx.Config);
             enableWipers = ctx.Config.Bind("Wipers", "Enabled", true, "Enable the right-hand washer/speed stalk, windshield wipers and precipitation interaction.");
             enableWeather = ctx.Config.Bind("Wipers", "WeatherEffects", true, "Rain/snow impacts, buildup and blade clearing on the front glass. Supports vanilla and optional Open World weather. Restart after changing.");
             rainObscuration = ctx.Config.Bind("Wipers", "RainObscuration", 1f,
@@ -159,7 +161,9 @@ namespace HalfGripSlapPack
             blades = new WiperBlades(car.transform, glass, bladeOwned);
             if (enableWeather.Value)
             {
-                weather = new WindshieldWeather(car, glass, bladeOwned, message => context.Log.LogWarning(message), rainObscuration.Value);
+                weather = new WindshieldWeather(car, glass, bladeOwned, message => context.Log.LogWarning(message), rainObscuration.Value, refractionSettings);
+                if (refractionSettings.Enabled.Value)
+                    context.Log.LogInfo("Experimental windshield refraction: separate camera, width=" + refractionSettings.Width.Value + ", max captures/s=" + refractionSettings.Hz.Value + ". Disable RefractionEnabled for an A/B performance comparison.");
                 context.Log.LogInfo("Windshield precipitation attached: vanilla fixed medium intensity; optional Open World 0–1 rain/snow; manual wiper selection.");
             }
         }

@@ -229,5 +229,29 @@ internal static class WindshieldWeatherTests
             moving.Deposit(0.2f, 0, 0, 120, 0, 0, false);
             Assert(stopped.Water.SequenceEqual(moving.Water), "Speed still acts as a separate dryer.");
         });
+        check("Refraction capture is throttled, sleeps when dry and does not catch up after hitches", () =>
+        {
+            var clock = new WindshieldCaptureClock(15); int captures = 0;
+            for (int frame = 0; frame < 1440; frame++) if (clock.Due(frame / 144.0, true)) captures++;
+            Assert(captures >= 140 && captures <= 151, "Capture rate escaped its budget: " + captures);
+            Assert(!clock.Due(10, false), "Dry glass captured the world.");
+            Assert(clock.Due(10.001, true), "Returning to wet glass did not refresh immediately.");
+            Assert(clock.Due(50, true) && !clock.Due(50, true), "Hitch caused a burst of captures.");
+        });
+        check("Refraction is absent on wiped glass but retains ripples at full saturation", () =>
+        {
+            PanePoint dry = WindshieldRefractionMath.Offset(0, 1, 1, 1, 1, 0.008f);
+            Assert(dry.X == 0 && dry.Y == 0, "Cleared glass still distorts.");
+            PanePoint full = WindshieldRefractionMath.Offset(1, 0, 0, 1, -1, 0.008f);
+            Assert(full.X > 0 && full.Y < 0, "Saturated glass flattened into a tint.");
+            PanePoint bounded = WindshieldRefractionMath.Offset(1, 100, -100, 1, 1, 0.02f);
+            Assert(Math.Abs(bounded.X) <= 0.02f && Math.Abs(bounded.Y) <= 0.02f, "Distortion escaped its sampling bound.");
+        });
+        check("Low-resolution capture preserves viewport aspect", () =>
+        {
+            Assert(WindshieldRefractionMath.CaptureHeight(640, 16f / 9) == 360, "16:9 capture has wrong height.");
+            Assert(WindshieldRefractionMath.CaptureHeight(640, 4f / 3) == 480, "4:3 capture has wrong height.");
+            Assert(WindshieldRefractionMath.CaptureHeight(320, 1000) == 64, "Capture height lost its lower bound.");
+        });
     }
 }

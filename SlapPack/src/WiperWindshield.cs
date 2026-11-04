@@ -96,6 +96,46 @@ namespace HalfGripSlapPack
             mesh.RecalculateBounds(); mesh.RecalculateNormals();
             return mesh;
         }
+
+        internal Mesh RefractionMesh(out PanePoint[] samples)
+        {
+            var vertices = new List<Vector3>();
+            var remap = new Dictionary<int, int>();
+            var faces = new List<int>();
+            foreach (int source in triangles)
+            {
+                if (!remap.TryGetValue(source, out int target))
+                {
+                    target = vertices.Count; vertices.Add(points[source]); remap.Add(source, target);
+                }
+                faces.Add(target);
+            }
+            for (int level = 0; level < 5 && faces.Count / 3 < 1024; level++)
+            {
+                var edges = new Dictionary<long, int>();
+                int Midpoint(int a, int b)
+                {
+                    long key = ((long)Math.Min(a, b) << 32) | (uint)Math.Max(a, b);
+                    if (edges.TryGetValue(key, out int index)) return index;
+                    index = vertices.Count; vertices.Add((vertices[a] + vertices[b]) * 0.5f); edges.Add(key, index);
+                    return index;
+                }
+                var divided = new List<int>(faces.Count * 4);
+                for (int i = 0; i < faces.Count; i += 3)
+                {
+                    int a = faces[i], b = faces[i + 1], c = faces[i + 2];
+                    int ab = Midpoint(a, b), bc = Midpoint(b, c), ca = Midpoint(c, a);
+                    divided.AddRange(new[] { a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca });
+                }
+                faces = divided;
+            }
+            samples = vertices.Select(p => new PanePoint(Vector3.Dot(p - origin, right), Vector3.Dot(p - origin, up))).ToArray();
+            var mesh = new Mesh { name = "SlapPack tessellated wet-glass sampling surface" };
+            mesh.indexFormat = vertices.Count > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+            mesh.vertices = vertices.Select(p => p + normal * 0.004f).ToArray(); mesh.triangles = faces.ToArray();
+            mesh.RecalculateBounds(); mesh.RecalculateNormals();
+            return mesh;
+        }
     }
 
     internal sealed class WiperBlades

@@ -17,8 +17,9 @@ namespace HalfGripSlapPack
         private readonly MeshRenderer renderer;
         private readonly WindshieldWeatherClock clock = new WindshieldWeatherClock();
         private readonly float obscuration;
+        private WindshieldRefraction refraction;
 
-        internal WindshieldWeather(CarControllerNew car, WiperWindshield glass, List<Object> owned, Action<string> warning, float obscuration)
+        internal WindshieldWeather(CarControllerNew car, WiperWindshield glass, List<Object> owned, Action<string> warning, float obscuration, WindshieldRefractionSettings refractionSettings)
         {
             this.car = car; this.glass = glass;
             this.obscuration = obscuration;
@@ -30,12 +31,25 @@ namespace HalfGripSlapPack
             texture.SetPixels32(pixels); texture.Apply(false, false);
             Material material = WindowMaterials.Transparent(Color.white, texture, owned);
             material.name = "SlapPack windshield precipitation";
+            material.renderQueue = 3001;
             var go = new GameObject("SlapPack.WindshieldWeather"); owned.Add(go);
             go.layer = glass.Source.gameObject.layer; go.transform.SetParent(car.transform, false);
             Mesh mesh = glass.WeatherMesh(field); owned.Add(mesh);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             renderer = go.AddComponent<MeshRenderer>(); renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
+            if (refractionSettings.Enabled.Value)
+            {
+                var refracted = new GameObject("SlapPack.WindshieldRefraction"); owned.Add(refracted);
+                refracted.transform.SetParent(car.transform, false);
+                refraction = refracted.AddComponent<WindshieldRefraction>();
+                try { refraction.Initialize(car, glass, field, renderer, refractionSettings, owned, warning); }
+                catch (Exception error)
+                {
+                    refracted.SetActive(false); refraction = null;
+                    warning("Windshield refraction could not initialize; retaining tint: " + error.Message);
+                }
+            }
         }
 
         internal void Record(float dt, float previous, float current, bool washing) => clock.Record(dt, previous, current, washing);
@@ -61,20 +75,25 @@ namespace HalfGripSlapPack
         {
             renderer.enabled = glass.Source && glass.Source.gameObject.activeInHierarchy;
             const int width = WindshieldWeatherState.Width;
+            float waterSum = 0;
+            bool refracting = refraction && refraction.Ready;
             for (int k = 0; k < pixels.Length; k++)
             {
                 if (!field.Inside[k]) continue;
                 float water = field.Water[k], snow = field.Snow[k];
+                waterSum += water;
                 // A bright leading rim, dark trailing rim and translucent center give
                 // each deposit relief without shipping shaders or game textures.
                 float gradient = (k >= width ? field.Water[k - width] : 0) - (k + width < pixels.Length ? field.Water[k + width] : 0);
                 float shine = Mathf.Clamp01(0.46f + gradient * 1.4f + field.Impact[k] * 0.3f);
                 float alpha = WindshieldWeatherOptics.Opacity(water, snow, obscuration);
+                if (refracting) alpha = WindshieldWeatherOptics.Opacity(water * 0.04f, snow, obscuration);
                 float white = snow / Mathf.Max(0.001f, snow + water);
                 pixels[k] = new Color32((byte)(Mathf.Lerp(shine * 0.8f, 0.88f, white) * 255), (byte)(Mathf.Lerp(shine * 0.9f, 0.93f, white) * 255),
                     (byte)(Mathf.Lerp(shine, 0.96f, white) * 255), (byte)(alpha * 255));
             }
             texture.SetPixels32(pixels); texture.Apply(false, false);
+            if (refraction) refraction.SetWetness(waterSum / pixels.Length);
         }
     }
 }

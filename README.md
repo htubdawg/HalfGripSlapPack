@@ -3,6 +3,53 @@ A collection of new things to interact with in your car.
 
 Features: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers with rain/slush interaction.
 
+## Experimental camera refraction — 0.7.0
+
+On `test/windshield-weather` only; no merge into the wiper-control branch. Version 0.7.0 prototypes a **separate low-resolution camera**
+for water distortion. It defaults to **640 pixels wide** (640×360 at 16:9) and **at most 15 captures/second**, configurable below. The camera
+copies the cockpit world camera's current pose, projection, culling mask and clipping distances. It renders once per scheduled capture using
+URP's standalone camera request, without a CPU image readback. Its capture remains on the GPU.
+
+The existing URP particle unlit shader draws that image through a tessellated front-glass mesh. Wetness controls vertex alpha, while the
+water gradient and animated ripples offset the sampling UVs. Ripples remain at saturation; wiping removes both the mask and distortion.
+Rain's colored overlay is greatly reduced while refraction is available; snow/slush retains its opacity. The method approximates refraction
+with a mesh and avoids depending on undocumented inputs of the game's speed-line shader. Native speed-line shader reuse is not implemented.
+
+The helper camera is disabled between explicit captures and sleeps when the windshield is dry, while paused, or outside the cockpit.
+The water overlay, refraction surface, own blades/washer jets and own speed-line renderer are temporarily hidden only during capture to avoid
+feedback and duplicate effects; their visibility is restored in a `finally` block. The original cameras and their settings are unchanged.
+New textures/camera/mesh/materials are removed with the weather surface on body changes or mod unload. Unsupported rendering requests or
+allocation failures warn once and restore the tint effect.
+
+Open World continues to provide precipitation as before. The capture inherits the main camera's current far clip each time, including
+Open World's extended horizon. Its streamed/far terrain are ordinary world renderers; no Open World camera registration or patch is added.
+The capture remains untagged so it does not replace `Camera.main`. These are source-level compatibility checks; live Open World rendering
+still requires the playtest below.
+
+```ini
+[Wipers]
+RefractionEnabled = true
+RefractionCaptureWidth = 640
+RefractionCaptureHz = 15
+RefractionStrength = 0.008
+RefractionFlipY = false
+```
+
+Restart after changing. Width allows 320–1280, rate 5–30 Hz, strength 0.001–0.02. Set `RefractionEnabled = false` to compare against 0.6.2-style
+water tint. The existing `RainObscuration` controls the tint fallback/highlights; `RefractionStrength` controls the ripple sampling offset.
+If the captured scenery is upside down on your graphics backend, set `RefractionFlipY = true` and restart.
+
+**Tradeoffs to check in-game:** the captured world updates at the configured rate, so wet areas can lag or ghost while driving/looking around.
+The helper renders world geometry again; low resolution reduces pixel work but does not eliminate CPU culling/draw submission. Its request
+disables shadows, MSAA, HDR and postprocessing to keep cost down, so brightness/shadow differences from the normal view may be visible.
+There is no measured Unity/GPU performance result here. Do not assume this is faster than sampling a scene-color copy.
+
+Playtest vanilla and Open World in rain: verify bent scenery without gray saturation, clean wiped arcs, correct texture orientation and
+alignment when turning/look controls/FOV change, cockpit/hand/HUD occlusion, distant terrain, pause/outside-camera behavior and mod unload.
+Compare refraction off versus 640/15 and 320/15 at the same location; also try 640/30 for image latency versus cost. Watch for a
+`Windshield camera refraction disabled` warning. Rendering, particle-shader vertex alpha, capture color matching and live performance need
+this test; the automated tests exercise timing, dry/wiped masks, saturated ripples, offset bounds and capture aspect only.
+
 ## Windshield precipitation — 0.6.2
 
 Version **0.6.2** limits runoff of water adhered to the windshield and removes speed-dependent evaporation. The previous version could
@@ -70,7 +117,7 @@ the model, not Unity rendering or the live optional-mod adapter.
 - Switch cameras, pause, change car bodies, restart the race and disable the mod. Check that the overlay follows only the front glass,
   stays behind cockpit controls, freezes while paused, rebuilds on body changes and disappears completely on unload.
 
-The image is a procedural transparent deposit/highlight layer using the existing URP shader support; it does not refract the scene.
+With camera refraction disabled, the fallback is a procedural transparent deposit/highlight layer; that fallback does not refract the scene.
 Visual scale, brightness, sorting, performance and live weather transitions still need the playtest above. No game runtime is available here.
 
 ## Windshield-wiper prototype
@@ -283,7 +330,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The 111 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The 130 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
