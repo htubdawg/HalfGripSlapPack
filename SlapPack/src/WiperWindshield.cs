@@ -146,6 +146,7 @@ namespace HalfGripSlapPack
 		private readonly MeshRenderer sprayRenderer;
 		private readonly Vector3[] drops = new Vector3[48];
 		private float sprayClock;
+		private float lastSweep = float.NaN;
 
 		internal WiperBlades(Transform car, WiperWindshield surface, List<Object> owned)
 		{
@@ -201,21 +202,27 @@ namespace HalfGripSlapPack
 
 		private static int[] QuadIndices(params int[] quads) => quads.SelectMany(q => new[] { q * 4, q * 4 + 1, q * 4 + 2, q * 4, q * 4 + 2, q * 4 + 3 }).ToArray();
 
+		/// <summary>Updates blade geometry only when its local sweep changes; washer animation remains independent.</summary>
 		internal void Step(float sweep, bool washing, float seconds)
 		{
 			float w = width * 0.009f;
-			for (int i = 0; i < 2; i++)
+			if (sweep != lastSweep)
 			{
-				WiperGeometry g = geometry[i]; float r = g.Radius;
-				// Seven broad, flat shapes: arm, edge, rubber, support, hinge and hub.
-				Rect(vertices[i], 0, g, 0, -w, r * 0.66f, w, sweep, 0.018f);
-				Rect(vertices[i], 1, g, r * 0.05f, w * 0.35f, r * 0.62f, w * 0.7f, sweep, 0.020f);
-				Rect(vertices[i], 2, g, r * 0.35f, -w * 1.25f, r, w * 1.25f, sweep, 0.012f);
-				Rect(vertices[i], 3, g, r * 0.40f, -w * 0.55f, r * 0.95f, w * 0.55f, sweep, 0.016f);
-				Rect(vertices[i], 4, g, r * 0.61f, -w * 1.6f, r * 0.67f, w * 1.6f, sweep, 0.022f);
-				Rect(vertices[i], 5, g, -w, -w, w, w, sweep, 0.025f);
-				Rect(vertices[i], 6, g, -w * 1.6f, -w * 1.6f, w * 1.6f, w * 1.6f, sweep, 0.022f);
-				meshes[i].vertices = vertices[i]; meshes[i].RecalculateBounds();
+				WiperGeometry.SweepAxes(sweep, out float c, out float s);
+				for (int i = 0; i < 2; i++)
+				{
+					WiperGeometry g = geometry[i]; float r = g.Radius;
+					// Seven broad, flat shapes: arm, edge, rubber, support, hinge and hub.
+					Rect(vertices[i], 0, g, 0, -w, r * 0.66f, w, c, s, 0.018f);
+					Rect(vertices[i], 1, g, r * 0.05f, w * 0.35f, r * 0.62f, w * 0.7f, c, s, 0.020f);
+					Rect(vertices[i], 2, g, r * 0.35f, -w * 1.25f, r, w * 1.25f, c, s, 0.012f);
+					Rect(vertices[i], 3, g, r * 0.40f, -w * 0.55f, r * 0.95f, w * 0.55f, c, s, 0.016f);
+					Rect(vertices[i], 4, g, r * 0.61f, -w * 1.6f, r * 0.67f, w * 1.6f, c, s, 0.022f);
+					Rect(vertices[i], 5, g, -w, -w, w, w, c, s, 0.025f);
+					Rect(vertices[i], 6, g, -w * 1.6f, -w * 1.6f, w * 1.6f, w * 1.6f, c, s, 0.022f);
+					meshes[i].vertices = vertices[i]; meshes[i].RecalculateBounds();
+				}
+				lastSweep = sweep;
 			}
 			sprayRenderer.enabled = washing;
 			if (!washing) { sprayClock = 0; return; }
@@ -238,13 +245,13 @@ namespace HalfGripSlapPack
 			spray.vertices = drops; spray.RecalculateBounds();
 		}
 
-		private void Rect(Vector3[] target, int quad, WiperGeometry g, float x0, float y0, float x1, float y1, float sweep, float depth)
+		private void Rect(Vector3[] target, int quad, WiperGeometry g, float x0, float y0, float x1, float y1, float c, float s, float depth)
 		{
 			int i = quad * 4;
-			target[i] = glass.Surface(g.Point(x0, y0, sweep), depth);
-			target[i + 1] = glass.Surface(g.Point(x1, y0, sweep), depth);
-			target[i + 2] = glass.Surface(g.Point(x1, y1, sweep), depth);
-			target[i + 3] = glass.Surface(g.Point(x0, y1, sweep), depth);
+			target[i] = glass.Surface(g.Point(x0, y0, c, s), depth);
+			target[i + 1] = glass.Surface(g.Point(x1, y0, c, s), depth);
+			target[i + 2] = glass.Surface(g.Point(x1, y1, c, s), depth);
+			target[i + 3] = glass.Surface(g.Point(x0, y1, c, s), depth);
 		}
 	}
 }

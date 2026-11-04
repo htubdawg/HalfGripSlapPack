@@ -42,6 +42,17 @@ internal static class WindshieldWeatherTests
 
 	internal static void Run(Action<string, Action> check)
 	{
+		check("Cached field neighbors clamp at glass bounds without wrapping rows", () =>
+		{
+			var field = new WindshieldWeatherState(Opening);
+			var low = new WindshieldFieldStencil(new PanePoint(-100, -100), field);
+			var high = new WindshieldFieldStencil(new PanePoint(100, 100), field);
+			int width = WindshieldWeatherState.Width, last = field.Water.Length - 1;
+			Assert(low.Center == 0 && low.Left == 0 && low.Down == 0 && low.Right == 1 && low.Up == width, "Lower bound wrapped.");
+			Assert(high.Center == last && high.Right == last && high.Up == last && high.Left == last - 1 && high.Down == last - width, "Upper bound wrapped.");
+			var edge = new WindshieldFieldStencil(new PanePoint(field.MinX, field.MinY + field.SpanY * 0.5f), field);
+			Assert(edge.Left == edge.Center && edge.Right == edge.Center + 1 && edge.Up == edge.Center + width && edge.Down == edge.Center - width, "Side edge crossed a row.");
+		});
 		check("Dry weather leaves the windshield clear", () =>
 		{
 			var field = Simulate(WiperSpeed.Off, 0, 0, 50, duration: 1);

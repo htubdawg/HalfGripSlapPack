@@ -35,8 +35,9 @@ namespace HalfGripSlapPack
 		private WindshieldRefractionSettings settings;
 		private Material material;
 		private Mesh mesh;
+		private WindshieldMeshStreams streams;
 		private Vector3[] positions;
-		private PanePoint[] samples;
+		private WindshieldFieldStencil[] stencils;
 		private Vector2[] uv, offsets, pointOffsets;
 		private Color32[] colors;
 		private int[] wetIndices;
@@ -52,6 +53,7 @@ namespace HalfGripSlapPack
 		private float peakTexels, meanTexels;
 		private uint pointRevision = uint.MaxValue;
 		private int pointWidth, pointHeight;
+		private bool uvUploadPending = true;
 
 		internal bool Ready => ready && !failed && car && car.fpvCamera && car.fpvCamera.isActiveAndEnabled;
 		internal bool CanDraw => !failed && isActiveAndEnabled;
@@ -95,10 +97,13 @@ namespace HalfGripSlapPack
 			material.SetColor("_BaseColor", Color.white);
 			// Keep the stock blend factors paired with its straight/premultiplied alpha keywords.
 			material.SetFloat("_ZWrite", 0); material.SetFloat("_Cull", (float)CullMode.Off);
-			mesh = glass.RefractionMesh(field, out samples); owned.Add(mesh); mesh.MarkDynamic();
+			mesh = glass.RefractionMesh(field, out PanePoint[] samples); owned.Add(mesh); mesh.MarkDynamic();
+			stencils = new WindshieldFieldStencil[samples.Length];
+			for (int i = 0; i < samples.Length; i++) stencils[i] = new WindshieldFieldStencil(samples[i], field);
 			positions = mesh.vertices; uv = new Vector2[positions.Length]; offsets = new Vector2[positions.Length];
 			pointOffsets = new Vector2[positions.Length];
-			colors = new Color32[positions.Length]; wetIndices = new int[positions.Length]; mesh.colors32 = colors;
+			colors = new Color32[positions.Length]; wetIndices = new int[positions.Length];
+			streams = WindshieldMeshStreams.Create(mesh, positions, uv, colors, owned); mesh = streams.Mesh;
 			pass = new WindshieldRefractionPass(this);
 			initialized = true; Subscribe();
 		}
@@ -144,17 +149,14 @@ namespace HalfGripSlapPack
 		{
 			if (revision == field.Revision) return;
 			revision = field.Revision; wetCount = 0;
-			const int width = WindshieldWeatherState.Width, height = WindshieldWeatherState.Height;
 			for (int i = 0; i < positions.Length; i++)
 			{
-				int x = Mathf.Clamp((int)((samples[i].X - field.MinX) / field.SpanX * width), 0, width - 1);
-				int y = Mathf.Clamp((int)((samples[i].Y - field.MinY) / field.SpanY * height), 0, height - 1);
-				int k = y * width + x;
+				WindshieldFieldStencil stencil = stencils[i];
+				int k = stencil.Center;
 				float water = field.Inside[k] ? field.Water[k] : 0;
 				colors[i] = new Color32(255, 255, 255, 0); offsets[i] = Vector2.zero;
 				if (water <= 0.01f) continue;
-				int left = y * width + Math.Max(0, x - 1), right = y * width + Math.Min(width - 1, x + 1);
-				int down = Math.Max(0, y - 1) * width + x, up = Math.Min(height - 1, y + 1) * width + x;
+				int left = stencil.Left, right = stencil.Right, down = stencil.Down, up = stencil.Up;
 				PanePoint offset = WindshieldRefractionMath.Offset(water, field.Water[left] - field.Water[right] + 2 * (field.Relief[left] - field.Relief[right]),
 					field.Water[down] - field.Water[up] + 2 * (field.Relief[down] - field.Relief[up]),
 					field.Impact[left] - field.Impact[right], field.Impact[down] - field.Impact[up], settings.Strength.Value);
@@ -162,7 +164,7 @@ namespace HalfGripSlapPack
 				colors[i].a = (byte)(WindshieldWeatherOptics.Opacity(water, 0) * 255);
 				wetIndices[wetCount++] = i;
 			}
-			mesh.colors32 = colors;
+			streams.UploadColors(colors);
 		}
 
 		/// <summary>Skips enqueueing for an off-screen wet area without uploading a projected mesh.</summary>
@@ -207,7 +209,9 @@ namespace HalfGripSlapPack
 				float halfInverseW = 0.5f / w;
 				float baseU = x * halfInverseW + 0.5f, baseV = y * halfInverseW + 0.5f;
 				float du = pointOffsets[i].x, dv = pointOffsets[i].y;
-				uv[i] = new Vector2(Mathf.Clamp01(baseU + du), Mathf.Clamp01(baseV + dv));
+				float u = Mathf.Clamp01(baseU + du), v = Mathf.Clamp01(baseV + dv);
+				if (!uvUploadPending && (uv[i].x != u || uv[i].y != v)) uvUploadPending = true;
+				uv[i] = new Vector2(u, v);
 				if (inView && diagnostics)
 				{
 					visibleSamples++;
@@ -216,7 +220,7 @@ namespace HalfGripSlapPack
 					peakTexels = Mathf.Max(peakTexels, shift); meanTexels += shift;
 				}
 			}
-			if (visible) mesh.uv = uv;
+			if (visible && uvUploadPending) { streams.UploadUV(uv); uvUploadPending = false; }
 			if (visibleSamples > 0) meanTexels /= visibleSamples;
 			return visible;
 		}

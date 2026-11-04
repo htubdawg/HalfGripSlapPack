@@ -3,7 +3,20 @@ A collection of new things to interact with in your car.
 
 Features: adjustable mirror, working window cranks, turn signals, and manual windshield wipers with rain/slush interaction.
 
-## Same-frame windshield refraction — 0.8.1
+## Same-frame windshield refraction — 0.8.2
+
+Version 0.8.2 reduces CPU work and mesh uploads while preserving the 0.8.1 appearance and settings:
+
+- Cache field-sampling neighbors once, instead of converting/clamping every vertex on each field refresh.
+- Share one sine/cosine pair across both blades; parked blades skip unchanged geometry uploads. Washer animation is independent.
+- Separate static Float32 positions/normals from dynamic Float32 UVs and packed RGBA colors. Only owned generated meshes are rebuilt;
+  layout checks retain the legacy upload path if the requested streams are unsupported. UV uploads are skipped only when values are exactly unchanged.
+- Keep scene-copy resolution, per-frame copy/draw, point filtering, 160×80 simulation at 20 Hz, mesh density, tint and distortion strength unchanged.
+
+A CPU-only comparison against 0.8.1 found bit-identical offsets/colors/wet ordering for 13,041 samples and 57,176 identical wiper points.
+Five-run medians: 400 field refreshes **232.26 → 136.71 ms** (41.1% less); 100,000 moving-blade point calculations **121.26 → 23.05 ms**
+(81.0% less). These exclude Unity mesh APIs, simulation, RenderGraph and GPU work, and are **not overall FPS improvements**.
+Split-stream rendering and actual frame-time savings still require an in-game test. Leave `VerboseLogging` and `RefractionDebugTint` false for normal play.
 
 Version 0.8.1 fixes two causes of disappearing distortion: clamping the water quantity also flattened its surface, and point filtering
 could hide fractional-texel sampling shifts. Persistent droplet **relief** now lives separately from water mass, so saturated glass retains
@@ -335,7 +348,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The 137 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The 138 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.

@@ -25,5 +25,6 @@
     <Compile Include="../SlapPack/src/WindshieldWeatherState.cs" Link="WindshieldWeatherState.cs" />
     <Compile Include="../SlapPack/src/WindshieldWeatherClock.cs" Link="WindshieldWeatherClock.cs" />
     <Compile Include="../SlapPack/src/WindshieldRefractionMath.cs" Link="WindshieldRefractionMath.cs" />
+    <Compile Include="../SlapPack/src/WindshieldFieldStencil.cs" Link="WindshieldFieldStencil.cs" />
   </ItemGroup>
 </Project>
