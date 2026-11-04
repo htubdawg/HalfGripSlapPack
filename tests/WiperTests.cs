@@ -21,19 +21,19 @@ internal static class WiperTests
             Assert(state.Speed == WiperSpeed.Off && state.Parked && !state.Washing, "Unexpected startup state.");
             Equal(0, state.Sweep);
         });
-        check("Wiper dial cycles off slow medium fast off", () =>
+        check("Wiper speed accepts all four dial detents", () =>
         {
             var state = new WiperState();
             foreach (WiperSpeed expected in new[] { WiperSpeed.Slow, WiperSpeed.Medium, WiperSpeed.Fast, WiperSpeed.Off })
             {
-                state.NextSpeed(); Assert(state.Speed == expected, "Dial order changed.");
+                state.SetSpeed(expected); Assert(state.Speed == expected, "Dial setting changed.");
             }
         });
         check("Each speed makes one smooth out-and-back sweep in its period", () =>
         {
             foreach (int speed in new[] { 1, 2, 3 })
             {
-                var state = new WiperState(); for (int n = 0; n < speed; n++) state.NextSpeed();
+                var state = new WiperState(); state.SetSpeed((WiperSpeed)speed);
                 float period = new[] { 0f, 2.4f, 1.4f, 0.8f }[speed];
                 state.Tick(period / 4); Equal(0.5f, state.Sweep);
                 state.Tick(period / 4); Equal(1, state.Sweep);
@@ -63,21 +63,21 @@ internal static class WiperTests
         });
         check("Washer release resumes the selected speed without moving the dial", () =>
         {
-            var state = new WiperState(); state.NextSpeed(); state.SetPull(1); state.Tick(0.7f);
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.SetPull(1); state.Tick(0.7f);
             Equal(1, state.Sweep); state.Release(); state.Tick(0.6f);
             Equal(0.5f, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && !state.Parked, "Slow setting was lost.");
         });
         check("Wash never slows fast wipers down", () =>
         {
-            var state = new WiperState(); for (int i = 0; i < 3; i++) state.NextSpeed();
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Fast);
             state.SetPull(1); state.Tick(0.4f); Equal(1, state.Sweep);
         });
         check("Switching off mid-stroke completes the current cycle before parking", () =>
         {
             foreach (float elapsed in new[] { 0.2f, 0.6f })
             {
-                var state = new WiperState(); for (int i = 0; i < 3; i++) state.NextSpeed();
-                state.Tick(elapsed); float before = state.Sweep; state.NextSpeed(); Equal(before, state.Sweep);
+                var state = new WiperState(); state.SetSpeed(WiperSpeed.Fast);
+                state.Tick(elapsed); float before = state.Sweep; state.SetSpeed(WiperSpeed.Off); Equal(before, state.Sweep);
                 state.Tick(0.01f); Assert(!state.Parked, "Off command teleported the blades.");
                 state.Tick(1); Assert(state.Parked, "Wipers did not finish parking."); Equal(0, state.Sweep);
                 state.Tick(1); Equal(0, state.Sweep);
@@ -85,14 +85,14 @@ internal static class WiperTests
         });
         check("Switching off exactly at park does not start another stroke", () =>
         {
-            var state = new WiperState(); for (int i = 0; i < 3; i++) state.NextSpeed();
-            state.Tick(0.8f); state.NextSpeed(); state.Tick(0.1f);
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Fast);
+            state.Tick(0.8f); state.SetSpeed(WiperSpeed.Off); state.Tick(0.1f);
             Assert(state.Parked, "An extra cycle started at the park stop."); Equal(0, state.Sweep);
         });
         check("Speed changes preserve blade position and phase", () =>
         {
-            var state = new WiperState(); state.NextSpeed(); state.Tick(0.6f);
-            state.NextSpeed(); Equal(0.5f, state.Sweep);
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.6f);
+            state.SetSpeed(WiperSpeed.Medium); Equal(0.5f, state.Sweep);
             state.Tick(0.35f); Equal(1, state.Sweep);
         });
         check("Wiper pause and invalid inputs leave animation stable", () =>

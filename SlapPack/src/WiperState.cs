@@ -24,7 +24,11 @@ namespace HalfGripSlapPack
             periods = new[] { 0.0, slow, medium, fast };
         }
 
-        internal void NextSpeed() { Speed = (WiperSpeed)(((int)Speed + 1) % 4); }
+        internal void SetSpeed(WiperSpeed setting)
+        {
+            if ((int)setting < 0 || (int)setting > 3) throw new ArgumentOutOfRangeException(nameof(setting));
+            Speed = setting;
+        }
         internal void SetPull(float fraction)
         {
             if (float.IsNaN(fraction) || float.IsInfinity(fraction)) return;

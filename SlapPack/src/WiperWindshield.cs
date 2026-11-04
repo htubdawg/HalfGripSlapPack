@@ -174,8 +174,8 @@ namespace HalfGripSlapPack
                 {
                     float t = Mathf.Repeat(sprayClock * 2.5f + drop / 6f, 1);
                     PanePoint pivot = geometry[jet].Pivot;
-                    float x = pivot.X + (drop % 3 - 1) * width * 0.06f * t;
-                    float y = pivot.Y + geometry[jet].Radius * (1.8f * t - t * t);
+                    PanePoint point = WasherSpray.Point(pivot, geometry[jet].Radius, width, jet == 0, drop, t);
+                    float x = point.X, y = point.Y;
                     float halfWidth = width * 0.002f;
                     float halfHeight = width * 0.008f;
                     int start = (jet * 6 + drop) * 4;

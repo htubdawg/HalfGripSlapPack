@@ -19,5 +19,6 @@
     <Compile Include="../SlapPack/src/WiperState.cs" Link="WiperState.cs" />
     <Compile Include="../SlapPack/src/WiperGeometry.cs" Link="WiperGeometry.cs" />
     <Compile Include="../SlapPack/src/WiperStalkPixels.cs" Link="WiperStalkPixels.cs" />
+    <Compile Include="../SlapPack/src/WiperKnobRotation.cs" Link="WiperKnobRotation.cs" />
   </ItemGroup>
 </Project>
