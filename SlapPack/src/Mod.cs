@@ -10,12 +10,15 @@ namespace HalfGripSlapPack
 
         public override void Load(ModContext ctx)
         {
+            ModLog.Initialize(ctx.Config, ctx.Log);
             ctx.PatchAll();
             host = new GameObject("SlapPack.Mirrors");
             Object.DontDestroyOnLoad(host);
             host.AddComponent<MirrorInstaller>().Initialize(ctx);
             host.AddComponent<WindowDiagnostics>().Initialize(ctx);
             host.AddComponent<WindowInstaller>().Initialize(ctx);
+            host.AddComponent<TurnSignalInstaller>().Initialize(ctx);
+            host.AddComponent<WiperInstaller>().Initialize(ctx);
         }
 
         public override void Unload()
@@ -23,6 +26,8 @@ namespace HalfGripSlapPack
             if (!host) return;
             host.GetComponent<MirrorInstaller>().RemoveMirror();
             host.GetComponent<WindowInstaller>().RemoveWindows();
+            host.GetComponent<TurnSignalInstaller>().RemoveSignals();
+            host.GetComponent<WiperInstaller>().RemoveWipers();
             Object.Destroy(host);
             host = null;
         }
@@ -37,7 +42,7 @@ namespace HalfGripSlapPack
         internal MirrorSettings(ConfigFile config)
         {
             this.config = config;
-            MirrorFOV = config.Bind("Mirror", "MirrorFOV", 22f,
+            MirrorFOV = config.Bind("Mirror", "MirrorFOV", 16f,
                 new ConfigDescription("Rear-view camera vertical field of view in degrees. Lower values zoom in; the original is about 28 degrees.",
                     new AcceptableValueRange<float>(10f, 60f)));
             IncludeCarInterior = config.Bind("Mirror", "IncludeCarInterior", true,

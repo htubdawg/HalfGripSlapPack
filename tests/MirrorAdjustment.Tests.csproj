@@ -6,11 +6,25 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="WeatherApi.Integration/**/*.cs" />
+    <Compile Include="../SlapPack/src/OptionalWeatherApi.cs" Link="OptionalWeatherApi.cs" />
     <Compile Include="../SlapPack/src/MirrorAdjustment.cs" Link="MirrorAdjustment.cs" />
     <Compile Include="../SlapPack/src/HandDepth.cs" Link="HandDepth.cs" />
     <Compile Include="../SlapPack/src/MirrorCullingMask.cs" Link="MirrorCullingMask.cs" />
     <Compile Include="../SlapPack/src/WindowTravel.cs" Link="WindowTravel.cs" />
     <Compile Include="../SlapPack/src/MeshBufferData.cs" Link="MeshBufferData.cs" />
     <Compile Include="../SlapPack/src/WindowPolygon.cs" Link="WindowPolygon.cs" />
+    <Compile Include="../SlapPack/src/TurnSignalState.cs" Link="TurnSignalState.cs" />
+    <Compile Include="../SlapPack/src/SignalRelay.cs" Link="SignalRelay.cs" />
+    <Compile Include="../SlapPack/src/SignalStalkLayout.cs" Link="SignalStalkLayout.cs" />
+    <Compile Include="../SlapPack/src/SignalStalkPixels.cs" Link="SignalStalkPixels.cs" />
+    <Compile Include="../SlapPack/src/WiperState.cs" Link="WiperState.cs" />
+    <Compile Include="../SlapPack/src/WiperGeometry.cs" Link="WiperGeometry.cs" />
+    <Compile Include="../SlapPack/src/WiperStalkPixels.cs" Link="WiperStalkPixels.cs" />
+    <Compile Include="../SlapPack/src/WiperKnobRotation.cs" Link="WiperKnobRotation.cs" />
+    <Compile Include="../SlapPack/src/WindshieldWeatherState.cs" Link="WindshieldWeatherState.cs" />
+    <Compile Include="../SlapPack/src/WindshieldWeatherClock.cs" Link="WindshieldWeatherClock.cs" />
+    <Compile Include="../SlapPack/src/WindshieldRefractionMath.cs" Link="WindshieldRefractionMath.cs" />
+    <Compile Include="../SlapPack/src/WindshieldFieldStencil.cs" Link="WindshieldFieldStencil.cs" />
   </ItemGroup>
 </Project>

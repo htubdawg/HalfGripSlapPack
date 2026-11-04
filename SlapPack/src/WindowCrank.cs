@@ -104,7 +104,8 @@ namespace HalfGripSlapPack
         {
             SpriteRenderer symbols = __instance.forceDirectionSprite;
             if (!symbols) return;
-            if (!(__instance.Held is WindowCrank crank) || !__instance.viewCamera || !symbols.enabled)
+            Grabbable held = __instance.Held;
+            if ((!(held is WindowCrank) && !(held is TurnSignalStalk) && !(held is WiperStalk)) || !__instance.viewCamera || !symbols.enabled)
             {
                 Restore(symbols);
                 return;
@@ -116,7 +117,7 @@ namespace HalfGripSlapPack
             // and pull slightly toward the camera so the symbols draw over the held hand.
             Vector3 hand = __instance.handIndicator && __instance.handIndicator.gameObject.activeInHierarchy
                 ? __instance.handIndicator.position
-                : Grabber.TowardCamera(__instance.viewCamera, crank.GripWorldPoint(), crank.handIndicatorCameraOffset);
+                : Grabber.TowardCamera(__instance.viewCamera, held.GripWorldPoint(), held.handIndicatorCameraOffset);
             symbols.transform.position = Grabber.TowardCamera(__instance.viewCamera, hand, 0.02f);
         }
 

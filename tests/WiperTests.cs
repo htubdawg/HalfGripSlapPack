@@ -1,0 +1,217 @@
+using System;
+using System.Collections.Generic;
+using HalfGripSlapPack;
+
+internal static class WiperTests
+{
+    private static void Assert(bool condition, string message)
+    {
+        if (!condition) throw new Exception(message);
+    }
+    private static void Equal(float expected, float actual)
+    {
+        Assert(Math.Abs(expected - actual) < 0.0001f && !float.IsNaN(actual), "Expected " + expected + ", got " + actual);
+    }
+
+    internal static void Run(Action<string, Action> check)
+    {
+        check("Wipers start off, dry and parked", () =>
+        {
+            var state = new WiperState(); state.Tick(20);
+            Assert(state.Speed == WiperSpeed.Off && state.Parked && !state.Washing, "Unexpected startup state.");
+            Equal(0, state.Sweep);
+        });
+        check("Wiper speed accepts all four dial detents", () =>
+        {
+            var state = new WiperState();
+            foreach (WiperSpeed expected in new[] { WiperSpeed.Slow, WiperSpeed.Medium, WiperSpeed.Fast, WiperSpeed.Off })
+            {
+                state.SetSpeed(expected); Assert(state.Speed == expected, "Dial setting changed.");
+            }
+        });
+        check("Continuous and fast modes make smooth out-and-back sweeps at their motor speeds", () =>
+        {
+            foreach (int speed in new[] { 2, 3 })
+            {
+                var state = new WiperState(); state.SetSpeed((WiperSpeed)speed);
+                float period = speed == 2 ? 1.4f : 0.8f;
+                state.Tick(period / 4); Equal(0.5f, state.Sweep);
+                state.Tick(period / 4); Equal(1, state.Sweep);
+                state.Tick(period / 4); Equal(0.5f, state.Sweep);
+                state.Tick(period / 4); Equal(0, state.Sweep);
+            }
+        });
+        check("Full pull washes continuously while held with the dial off", () =>
+        {
+            var state = new WiperState(); state.SetPull(1); state.Tick(1.4f * 4 + 0.35f);
+            Assert(state.Washing && !state.Parked && state.Speed == WiperSpeed.Off, "Wash changed the dial.");
+            Equal(0.5f, state.Sweep);
+        });
+        check("Wash detent ignores tiny downward hand movement", () =>
+        {
+            var state = new WiperState(); state.SetPull(0.29f); state.Tick(1);
+            Assert(!state.Washing && state.Parked, "Washer started on initial grab.");
+            state.SetPull(0.3f); state.Tick(0.1f); Assert(state.Washing && !state.Parked, "Wash detent did not engage.");
+        });
+        check("Releasing wash immediately stops spray and springs the stalk back", () =>
+        {
+            var state = new WiperState(); state.SetPull(1); state.Tick(0.3f);
+            float before = state.Sweep; state.Release();
+            Equal(0, state.Pull); Equal(before, state.Sweep);
+            Assert(!state.Washing, "Spray remained active after release.");
+            state.Tick(3.9f); Assert(state.Parked, "Off wipers did not park after the minimum three cycles."); Equal(0, state.Sweep);
+        });
+        check("Washer burst resumes intermittent mode with its parked pause after three cycles", () =>
+        {
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.SetPull(1); state.Tick(0.7f);
+            Equal(1, state.Sweep); state.Release(); state.Tick(3.5f); Equal(0, state.Sweep); state.Tick(2.5f); state.Tick(0.35f);
+            Equal(0.5f, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && !state.Parked, "Intermittent setting was lost.");
+        });
+        check("Wash never slows fast wipers down", () =>
+        {
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Fast);
+            state.SetPull(1); state.Tick(0.4f); Equal(1, state.Sweep);
+        });
+        check("Switching off mid-stroke completes the current cycle before parking", () =>
+        {
+            foreach (float elapsed in new[] { 0.2f, 0.6f })
+            {
+                var state = new WiperState(); state.SetSpeed(WiperSpeed.Fast);
+                state.Tick(elapsed); float before = state.Sweep; state.SetSpeed(WiperSpeed.Off); Equal(before, state.Sweep);
+                state.Tick(0.01f); Assert(!state.Parked, "Off command teleported the blades.");
+                state.Tick(1); Assert(state.Parked, "Wipers did not finish parking."); Equal(0, state.Sweep);
+                state.Tick(1); Equal(0, state.Sweep);
+            }
+        });
+        check("Switching off exactly at park does not start another stroke", () =>
+        {
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Fast);
+            state.Tick(0.8f); state.SetSpeed(WiperSpeed.Off); state.Tick(0.1f);
+            Assert(state.Parked, "An extra cycle started at the park stop."); Equal(0, state.Sweep);
+        });
+        check("Speed changes preserve blade position and phase", () =>
+        {
+            var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.35f);
+            state.SetSpeed(WiperSpeed.Medium); Equal(0.5f, state.Sweep);
+            state.Tick(0.35f); Equal(1, state.Sweep);
+        });
+        check("Wiper pause and invalid inputs leave animation stable", () =>
+        {
+            var state = new WiperState(); state.SetPull(1); state.Tick(0.35f);
+            foreach (float dt in new[] { 0, -1, float.NaN, float.PositiveInfinity }) state.Tick(dt);
+            state.SetPull(float.NaN); state.SetPull(float.PositiveInfinity);
+            Equal(0.5f, state.Sweep); Equal(1, state.Pull);
+            state.SetPull(-1); Equal(0, state.Pull);
+        });
+        check("Wiper timing rejects invalid pauses and motor periods", () =>
+        {
+            foreach (float[] periods in new[] { new[] { 0f, 1f, 0.5f }, new[] { 1f, 0.5f, 1f }, new[] { float.NaN, 1f, 0.5f } })
+            {
+                bool threw = false;
+                try { new WiperState(periods[0], periods[1], periods[2]); } catch (ArgumentOutOfRangeException) { threw = true; }
+                Assert(threw, "Invalid timing accepted.");
+            }
+        });
+        check("Both wiper sweeps clear a trapezoidal windshield throughout travel", () =>
+        {
+            var opening = WindowPolygon.Hull(new[] { new PanePoint(-1.24f, 0), new PanePoint(1.24f, 0),
+                new PanePoint(0.98f, 1.5f), new PanePoint(-0.98f, 1.5f) });
+            CheckSweep(opening);
+        });
+        check("Wiper sweeps fit the stock windshield's raised center and sloped lower edge", () =>
+        {
+            // The supplied stock front glass projected into its own plane, in car units.
+            var opening = WindowPolygon.Hull(new[] { new PanePoint(-1.235474f, -0.791847f), new PanePoint(0, -0.720308f),
+                new PanePoint(1.235474f, -0.791847f), new PanePoint(0.982076f, 0.742094f), new PanePoint(0, 0.770062f), new PanePoint(-0.982076f, 0.742094f) });
+            CheckSweep(opening);
+        });
+        check("Wiper knob settings remain distinct at native pixel resolution", () =>
+        {
+            var hashes = new HashSet<string>();
+            for (int speed = 0; speed < 4; speed++)
+            {
+                byte[] pixels = WiperStalkPixels.Build(speed);
+                Assert(pixels.Length == 128 * 20, "Wiper art resolution changed.");
+                foreach (byte pixel in pixels) Assert(pixel < SignalStalkPixels.Palette.Length, "Unknown palette color.");
+                hashes.Add(Convert.ToBase64String(pixels));
+            }
+            Assert(hashes.Count == 4, "Dial setting has no visual indication.");
+        });
+        check("A washer tap completes exactly three full wipe cycles before parking", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1); state.Release();
+            Assert(!state.Washing, "Spray stayed on after the tap.");
+            for (int cycle = 1; cycle <= 3; cycle++)
+            {
+                state.Tick(0.5f); Equal(1, state.Sweep);
+                state.Tick(0.5f); Equal(0, state.Sweep);
+                Assert(state.Parked == (cycle == 3), "Washer parked before or after its three-cycle minimum.");
+            }
+            state.Tick(5); Equal(0, state.Sweep); Assert(state.Parked, "An extra cycle started.");
+        });
+        check("Wipes completed while washing count toward the three-cycle minimum", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1); state.Tick(1); state.Release();
+            state.Tick(1); Assert(!state.Parked, "Only two cycles were completed.");
+            state.Tick(1); Assert(state.Parked, "Three extra cycles were queued on release.");
+        });
+        check("A long washer hold runs continuously and only finishes its current cycle on release", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1);
+            for (int frame = 0; frame < 18; frame++) { state.SetPull(1); state.Tick(0.25f); }
+            Assert(!state.Parked && state.Washing, "A held washer stopped after three cycles.");
+            Equal(1, state.Sweep); state.Release(); state.Tick(0.5f);
+            Assert(state.Parked, "A steady hold continually restarted the minimum cycle count.");
+        });
+        check("Starting wash mid-stroke guarantees three full cycles after the partial one", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Slow); state.Tick(0.5f);
+            state.SetPull(1); state.Release(); state.SetSpeed(WiperSpeed.Off);
+            state.Tick(0.5f); Equal(0, state.Sweep);
+            state.Tick(2); Assert(!state.Parked, "An existing partial cycle counted as a full wash wipe.");
+            state.Tick(1); Assert(state.Parked, "Wash did not finish its third complete cycle.");
+        });
+        check("A new washer pull rearms its own minimum without snapping the blades", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1); state.Release(); state.Tick(1.5f);
+            float before = state.Sweep; state.SetPull(1); state.Release(); Equal(before, state.Sweep);
+            state.Tick(2.5f); Assert(!state.Parked, "Second pull inherited too few remaining cycles.");
+            state.Tick(1); Assert(state.Parked, "Second pull failed to park after three full cycles.");
+        });
+        check("Selecting off during a washer burst still completes its minimum", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Fast);
+            state.SetPull(1); state.Tick(0.25f); state.Release(); state.SetSpeed(WiperSpeed.Off);
+            state.Tick(1.5f); Assert(!state.Parked, "Off canceled the washer minimum.");
+            state.Tick(1); Assert(state.Parked, "Off failed to park after the minimum.");
+        });
+        check("A large frame finishes the washer burst and uses leftover time in the intermittent pause", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Slow);
+            state.SetPull(1); state.Release(); state.Tick(4);
+            Equal(0, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && state.Parked, "Burst skipped its intermittent pause.");
+            state.Tick(1.5f); Equal(1, state.Sweep);
+        });
+    }
+
+    private static void CheckSweep(List<PanePoint> opening)
+    {
+        foreach (bool passenger in new[] { false, true })
+        {
+            var geometry = new WiperGeometry(opening, passenger);
+            Assert(geometry.Radius > 0.5f, "Fitted blade is too small.");
+            for (int frame = 0; frame <= 200; frame++)
+                foreach (float radial in new[] { 0, geometry.Radius * 0.35f, geometry.Radius })
+                    foreach (float side in new[] { -0.03f, 0.03f })
+                    {
+                        PanePoint p = geometry.Point(radial, side, frame / 200f);
+                        for (int edge = 0; edge < opening.Count; edge++)
+                        {
+                            PanePoint a = opening[edge], b = opening[(edge + 1) % opening.Count];
+                            float cross = (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+                            Assert(cross >= -0.0001f, "Blade crosses the windshield frame.");
+                        }
+                    }
+        }
+    }
+}

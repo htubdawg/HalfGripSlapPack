@@ -105,7 +105,7 @@ namespace HalfGripSlapPack
             }
             boundModel = model;
             boundCameras = cameras;
-            context.Log.LogInfo("Windows bound: stock driver/passenger crank artwork; clockwise lowers, counterclockwise raises; tint=" + opacity.Value);
+            ModLog.Info(context.Log, "Windows bound: stock driver/passenger crank artwork; clockwise lowers, counterclockwise raises; tint=" + opacity.Value);
         }
 
         private WindowPane FindPane(Transform car, CameraSwitch cameras, CrankFace face, Material material, Dictionary<Mesh, MeshSnapshot> cache)

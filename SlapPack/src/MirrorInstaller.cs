@@ -79,7 +79,7 @@ namespace HalfGripSlapPack
                 Vector3 mount = mirrorRoot.InverseTransformPoint(casing.transform.TransformPoint(
                     new Vector3(casing.sprite.bounds.center.x, casing.sprite.bounds.max.y, 0)));
                 mirror.Initialize(grabber, rearCamera, mirrorRoot, mount, settings, context.Log);
-                context.Log.LogInfo("Adjustable mirror attached. Grab and drag to aim; right-click to reset.");
+                ModLog.Info(context.Log, "Adjustable mirror attached. Grab and drag to aim; right-click to reset.");
                 return;
             }
         }

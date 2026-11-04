@@ -1,154 +1,116 @@
-# HalfGripSlapPack
-A collection of new things to interact with in your car.
+# Slap Pack for Half Grip
 
-Planned features: adjustable rear-view mirror, turn signals, windshield wipers, and working window cranks.
+**Version 0.8.3** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
 
-## Window-crank development branch
+More things to grab in your car: adjust the rear-view mirror, wind the windows down, use the turn signals, and clear rain and slush
+with working windshield wipers. Rain builds up on the glass and distorts the view until you wipe it away.
 
-`test/window-cranks` starts from the working mirror branch. Version **0.3.2** anchors the crank direction symbols over the held hand on
-both doors. The window prototype and rotation correction have been reported working in-game; the symbol-placement fix still needs a playtest.
+## In the cockpit
 
-Look toward either door, grab its existing crank artwork with the normal hand control, and move the hand in circles. Clockwise lowers
-that window; counterclockwise raises it. The two windows move independently, stop at the ends, and start fully raised each race.
-Release leaves the window at its current height. Three crank turns span the default full travel.
+Use the game's normal hand/grab control.
 
-The cranks are painted into the door atlas. Slap Pack locates the artwork through the original UVs, replaces its static image in a
-private material/texture copy, and rotates an isolated copy of that same artwork at its original location. No game artwork is shipped
-with the mod. Unsupported cabin textures are skipped with a warning instead of modifying unrecognized doors.
+| Control | How to use it |
+|---|---|
+| **Rear-view mirror** | Grab the casing and drag to aim it. Release to save the position. Right-click while hovering or holding to reset |
+| **Window cranks** | Grab either door's crank and move your hand in circles. Clockwise lowers that window; counterclockwise raises it |
+| **Turn-signal stalk** (left) | Grab the end and move down for left, up for right. A halfway tap gives three flashes; full travel latches it. Return to neutral to cancel |
+| **Wiper speed sleeve** (right) | Hold right-click on the end and drag up/down through **0 / I / II / III**: off, intermittent, continuous, fast |
+| **Washer stalk** (right) | Left-click and pull down to spray and wipe. Release stops the spray; a quick pull completes at least three full wipe cycles |
 
-Only the two matching front door glass regions receive a faint blue-gray **4% opacity** effect. Lowered glass is clipped to its original
-opening so it disappears into the door rather than protruding through the frame. The windshield, rear glass, source meshes, and shared
-glass material are unchanged. This prototype changes visible glass only; it does not change glass damage, bullet collision, rain, or audio.
+The mirror now defaults to a **16° field of view**. Its adjustment is saved between races. If you have the Smart Mirror upgrade,
+auto-aim stays active until you manually move or reset the mirror.
 
-Settings in `BepInEx/config/halfgrip.slappack.cfg` (restart after editing tint or travel):
+The two windows move independently and start fully raised each race. Turn signals have dashboard arrows, exterior lamps and a relay
+click, and cancel after you complete the indicated turn. The wipers finish their stroke before parking when switched off.
 
-```ini
-[Windows]
-Enabled = true
-TintOpacity = 0.04
-TurnsForFullTravel = 3
-WriteGeometryReport = false
-```
+### Rain and snow
 
-Tint opacity allows 0–0.15; travel allows 1–8 turns. Disabling windows or unloading Slap Pack removes the added panes/controls and restores
-the original door materials. Camera switching retains travel; changing car models rebuilds the window bindings.
+Rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
+The blades clear their swept area, leaving water around the edges. Water bends the view through the glass using the current frame,
+with point filtering to match the game's pixels.
 
-## Optional window geometry diagnostics
+Vanilla rain and snow work on their own. **Continuous mode (II)** is intended for vanilla rain; use intermittent for lighter weather
+and fast for heavier rain. Mode selection stays manual.
 
-The supplied runtime GPU report identified the stock crank UVs and front door panes for both stock cabin meshes. To collect another
-report for troubleshooting, set `WriteGeometryReport = true`, start a race, and look for `Window-crank geometry report written to`
-in `BepInEx/LogOutput.log`. The report folder is:
+[Open World](https://github.com/htubdawg/HalfGripOpenWorld) weather is supported through its public **WeatherView v1** API, including
+variable rain/snow intensity and world wind. That API is currently supplied by its
+[0.24.0+ API test branch](https://github.com/htubdawg/HalfGripOpenWorld/tree/claude/nifty-babbage-6o4kay).
+Older builds without the API use vanilla weather flags and cannot provide Open World's variable intensity.
+
+## Install
+
+You need Windows and the game on Steam.
+
+### Easy way: the installer
+
+1. Download `HalfGrip-Mods-Installer.exe` from the [HalfGripMods Releases page](https://github.com/4l3x4nd3r0/HalfGripMods/releases)
+   (the newest release called **installer**) and open it.
+2. Close the game. In the installer, press **+ ADD**, paste `https://github.com/htubdawg/HalfGripSlapPack`, then press **ADD**.
+3. Find **Slap Pack** and press **INSTALL**.
+4. Start the game from Steam. The first start compiles the mod, which takes a few seconds. The main-menu mod manager should list **Slap Pack**.
+
+The installer sets up BepInEx and HalfGripTools if they are missing. Open it again to update; **CHECK NOW** checks for updates straight away.
+More about installing and removing mods is in the [HalfGripMods README](https://github.com/4l3x4nd3r0/HalfGripMods#install).
+
+### Manual steps
+
+1. Install BepInEx and [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6+** if needed. Steps 1 and 2 of the
+   [HalfGripTools README](https://github.com/4l3x4nd3r0/HalfGripTools#install) cover both.
+2. Download this repository (**Code > Download ZIP**) and unzip it.
+3. Delete any older `SlapPack` folder in `<game>\BepInEx\HalfGripMods\`, then copy the **`SlapPack`** folder from the download into it.
+4. Start the game and wait for the main menu. The mod manager should list **Slap Pack**.
+
+> [!IMPORTANT]
+> **Copy only the `SlapPack` folder, not the whole download.** The ZIP contains `HalfGripSlapPack-main\`, with `SlapPack` inside it.
+> `mod.json` must sit directly inside `HalfGripMods\SlapPack\`.
+
+Correct layout:
 
 ```text
-<game>/BepInEx/SlapPack/WindowDiagnostics/<scene>-<timestamp>/
-  geometry.txt
-  texture-*.png
+Half Grip Demo\
+└── BepInEx\
+    └── HalfGripMods\
+        └── SlapPack\
+            ├── mod.json
+            └── src\
 ```
 
-Share that folder for inspection; it contains the complete cabin/car hierarchy, mesh vertices/UVs/triangles, and material
-texture previews at up to 1024 pixels. Version 0.2.1 also tries a synchronous GPU-buffer read for meshes whose CPU copy was discarded;
-unsupported formats or readback failures are recorded in `geometry.txt`. Shared mesh data and usage flags are never modified.
-These are private game reference assets:
-keep the reports out of the mod repository and distribution archives. The diagnostic does not change shared meshes, materials, or glass.
-Try each car model you want supported, since their doors can differ.
+`<game>` is usually `C:\Program Files (x86)\Steam\steamapps\common\Half Grip Demo`.
+You do not need the repository's tests, documentation, `.csproj`, `bin` or `obj` folders to play.
 
-The diagnostic runs once per spawned player car. Turn it off after troubleshooting; it can pause the game briefly while reading GPU data.
+## Settings
 
-The first prototype implements the adjustable **interior rear-view mirror** for Half Grip **0.418**, using **HalfGripTools 1.0.6+**.
-It compiles against the game's reference assemblies; in-game behavior is still awaiting validation.
+Settings are written to `BepInEx\config\halfgrip.slappack.cfg` after the first launch. Close the game before editing it in Notepad,
+then restart. Existing saved settings are kept when updating: to use the new mirror default, set `MirrorFOV = 16` under `[Mirror]`.
 
-## Install and try the mirror
+| Setting | Default | What it does |
+|---|---|---|
+| `Mirror.MirrorFOV` | `16` | Rear-view field of view in degrees (10–60). Lower values zoom in |
+| `Mirror.IncludeCarInterior` | `true` | Includes the car's 3D cabin in the mirror view |
+| `Mirror.Sensitivity` | `8` | How quickly the mirror moves while dragging |
+| `Mirror.HorizontalLimit` / `VerticalLimit` | `30` / `20` | Maximum mirror adjustment in degrees |
+| `Windows.Enabled` | `true` | Enables the two window cranks and moving glass |
+| `Windows.TintOpacity` | `0.04` | Tint on raised side-window glass |
+| `Windows.TurnsForFullTravel` | `3` | Crank turns from fully raised to fully lowered |
+| `TurnSignals.Enabled` | `true` | Enables the signal stalk, arrows and exterior lamps |
+| `TurnSignals.ClickSound` / `ClickVolume` | `true` / `0.35` | Relay sound and volume |
+| `Wipers.Enabled` | `true` | Enables wipers and their controls |
+| `Wipers.WeatherEffects` | `true` | Enables rain/slush buildup and wiping |
+| `Wipers.IntermittentPause` | `2.5` | Seconds parked between wipes in mode I |
+| `Wipers.RainObscuration` | `1` | Strength of water obscuration |
+| `Wipers.RefractionEnabled` | `true` | Water distortion; disabling it keeps the tint overlay |
+| `Wipers.RefractionCaptureWidth` | `320` | Scene-copy width (320–1280). Higher values give finer detail at more cost |
+| `Wipers.RefractionStrength` | `0.008` | Strength of the distortion |
+| `Diagnostics.VerboseLogging` | `false` | Detailed binding, weather-provider and rendering logs |
+| `Diagnostics.RefractionDebugTint` | `false` | Magenta wet-mask diagnostic; leave off for normal play |
 
-Copy the `SlapPack` folder into `<game>/BepInEx/HalfGripMods/` alongside your other HalfGripTools mods. The layout must be
-`HalfGripMods/SlapPack/mod.json` and `HalfGripMods/SlapPack/src/*.cs`. HalfGripTools compiles the source when the game starts.
-The development `.csproj` and its `bin`/`obj` folders are not needed in the game. Restart the game after changing source.
+## Notes
 
-- In the cockpit, grab the mirror casing with the normal hand/grab control and drag. The casing and glass tilt together
-  around the top mount, moving the mirror's center and adjusting the rearward view. Its grab hitbox follows the visible mirror.
-- Release to retain and save the adjustment, leaving the hand cursor at the mirror's grip point. Right-click while hovering over
-  or holding the mirror to reset both axes.
-- Defaults allow 30 degrees horizontally and 20 degrees vertically. Sensitivity and limits are configurable in
-  `BepInEx/config/halfgrip.slappack.cfg`; `SavedYaw` and `SavedPitch` store the shared setting across races.
-- Pausing, losing focus, releasing the hand, or switching out of the cockpit cancels an active drag.
-- The mirror stays behind overlapping hand cursor sprites, including hover, hold, and release transitions, as its angle changes.
-- `MirrorFOV = 22` sets the rear-view camera's vertical field of view in degrees (range 10–60). Lower values make the rearward
-  view larger and narrower. The original is about 28 degrees; unloading restores the FOV captured before Slap Pack changed it.
-- `IncludeCarInterior = true` (default) in the CFG's `[Mirror]` section includes the layers used by the car's 3D cabin models in
-  the rear-view camera. Set it to `false` to restore the original layer inclusion. This changes the rear-view camera only; it does
-  not add the separate 2D cockpit/hand layer. Other geometry sharing the cabin's layer can also appear in the reflection.
-- If the Smart Mirror upgrade is active, manual adjustment suspends its auto-aim. Auto-aim resumes when Slap Pack unloads.
-
-Example in `BepInEx/config/halfgrip.slappack.cfg` (edit while the game is closed, then restart):
-
-```ini
-[Mirror]
-MirrorFOV = 22
-IncludeCarInterior = true
-```
-
-The mirror surface tilts by half the camera adjustment angle, approximating how reflection doubles the change in viewing direction.
-Right-click reset restores both its original pose and view. Unloading also restores the original hierarchy and removes the added hitbox.
-Additional visual hints and the other planned controls are not implemented yet. HalfGripTools does not load gameplay mods in speedrun mode.
-
-## Build and check
-
-Use the .NET 8 SDK, a sibling `HalfGripRefs` checkout, and a built HalfGripTools DLL. The private game DLLs remain in HalfGripRefs;
-do not commit or distribute them with this mod.
-
-```bash
-# In the prepared cloud environment, activate dotnet first:
-source /workspace/.halfgrip-setup/activate.sh
-
-# From the HalfGripSlapPack repository:
-dotnet build SlapPack/SlapPack.csproj -c Release \
-  -p:HalfGripToolsDll=/workspace/.halfgrip-setup/build/tools/HalfGripTools.dll
-dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
-```
-
-For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The thirty tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
-hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
-The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
-and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
-Additional tests check half-precision GPU vertex decoding, including subnormal and invalid values. These tests do not exercise Unity's
-GPU readback API; that path requires an in-game diagnostic run.
-
-## Window prototype playtest
-
-- Confirm the log reports `Windows bound` and that both cranks appear in their original locations without duplicate artwork or a bright square patch.
-- Look toward each door and try several clockwise/counterclockwise turns. Check that the visible crank and hand stay aligned, each window moves
-  independently, and reversing at the stops responds immediately.
-- Confirm clockwise and counterclockwise hand movement rotates the visible crank in the same direction on both doors.
-- While cranking either door, confirm the direction symbols stay over the hand as the view turns, instead of appearing on the dashboard.
-  Release and try steering/shifting to confirm their normal indicators still work.
-- Check tint at fully raised, half raised, and fully lowered states. The upper edge should descend into the door; windshield and rear glass should
-  remain unchanged. Report whether the default 4% opacity is visible enough.
-- Release/re-grab, pause, lose focus, switch to the outside camera and back, restart a race, and try the other stock car model.
-- Disable Slap Pack and confirm original door artwork/materials return and all added tint and controls disappear.
-- Check existing mirror, steering, gun, and nearby cockpit controls still work.
-They do not validate Unity input, scene binding, or rendering.
-
-## In-game acceptance checks
-
-- Start a race and confirm the log reports `Adjustable mirror attached` once for the cockpit.
-- Drag each axis independently. Confirm the view moves in the expected direction and the hand targets the mirror only.
-- Confirm the casing and glass move together around the fixed top mount, with no separation or clipping. Check that the hitbox and
-  held hand follow the mirror at all four adjustment extremes, and that repeated drags do not drift when the housing tilts.
-- At each extreme, hover, grab, release, and pass the idle hand across the glass. Confirm the screen stays behind every hand pose
-  without flickering, and that cursor screen position and release behavior remain unchanged.
-- Reach each stop and reverse direction; adjustment should respond immediately without a dead zone.
-- Release, grab again, and right-click reset both while hovering and while holding. Check for jumps or drifting.
-- Drag well beyond an adjustment stop, then release. Confirm the hand remains at its visible grip instead of jumping to the hidden
-  input cursor, and that the next small mouse movement starts from that location. Repeat with a normal drag and after resetting while held.
-- Pause or lose focus during a drag, release the button, then return. Confirm no stuck hand or continued adjustment.
-- Switch to the outside camera and back; restart the race, change tracks, and restart the game. Confirm the setting survives.
-- Try with and without the Smart Mirror upgrade. Disable mods through HalfGripTools and confirm the original view and auto-aim return.
-- Check normal steering, shifting, and other nearby cockpit interactions remain usable.
-- Compare `MirrorFOV = 22` with `28` and confirm only the reflection changes. Confirm disabling Slap Pack restores the original FOV.
-- With `IncludeCarInterior = true`, angle the mirror toward the cabin and check the 3D interior is visible for each car model.
-  Repeat with `false` to verify the original layer inclusion. Check the forward camera, hand, and mirror screen remain unchanged,
-  and confirm disabling Slap Pack restores the rear-view camera's original layer inclusion.
-
-Compile checks and the adjustment tests pass in the cloud environment. The camera-only prototype has been reported working in-game;
-the moving housing/glass update still needs an in-game playtest. The game runtime is not available here, so visual alignment, clipping,
-hand tracking, and reset/unload behavior must be checked in that playtest.
+- **Troubleshooting:** check `BepInEx\LogOutput.log` for `Loaded Slap Pack` and any warnings/errors. For weather problems, enable
+  `Diagnostics.VerboseLogging`, restart, and share the log. [Development notes](docs/development.md) explain the diagnostics.
+- **Multiplayer:** turn signals are local visuals and are not replicated to other players' cars.
+- **Limitations:** windows change the visible glass, not bullet collision or sound. There is no persistent ice/frost, washer-fluid
+  consumption, automatic rain sensing or hazard-light control. Unsupported door artwork is skipped with a warning.
+- **Removing the mod:** close the game and delete `SlapPack` from `BepInEx\HalfGripMods\`, or use the installer.
+- **Speedrun mode:** HalfGripTools does not load gameplay mods in speedrun mode.
+- **For developers:** see [build, validation and rendering notes](docs/development.md) and the [public weather API contract](docs/public-weather-api.md).
