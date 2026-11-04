@@ -8,9 +8,7 @@ namespace HalfGripSlapPack
         private Grabber hand;
         private Camera drivingCamera;
         private MeshRenderer[] settings;
-        private Texture[] restTextures;
-        private Texture2D dialTexture;
-        private Color32[] dialColors;
+        private TurnSignalAudio detentAudio;
         private readonly WiperKnobRotation knob = new WiperKnobRotation();
         private Vector2 previousKnobHand;
         internal bool RotatingKnob { get; private set; }
@@ -21,13 +19,10 @@ namespace HalfGripSlapPack
 
         protected override void Awake() { }
 
-        internal void Initialize(WiperState value, Grabber grabber, Camera camera, Vector3 normal, float length, MeshRenderer[] artwork, Texture2D rotationTexture)
+        internal void Initialize(WiperState value, Grabber grabber, Camera camera, Vector3 normal, float length, MeshRenderer[] artwork, TurnSignalAudio clicks)
         {
             state = value; hand = grabber; drivingCamera = camera; settings = artwork;
-            dialTexture = rotationTexture;
-            dialColors = new Color32[SignalStalkLayout.TextureWidth * SignalStalkLayout.TextureHeight];
-            restTextures = new Texture[settings.Length];
-            for (int i = 0; i < settings.Length; i++) restTextures[i] = settings[i].sharedMaterial.GetTexture("_BaseMap");
+            detentAudio = clicks;
             movementPlane = normal;
             keepPhysicalCursorClose = true;
             keepPhysicalCursorRange = Mathf.Max(0.6f, length * 0.16f);
@@ -53,7 +48,6 @@ namespace HalfGripSlapPack
                 // The visible hand remains at the sleeve while input travels through detents.
                 // Native releaseCursorBlend=0 returns the cursor to the grip on release.
                 keepPhysicalCursorClose = false;
-                DrawDial();
             }
         }
         protected override void OnHandMoved()
@@ -63,8 +57,14 @@ namespace HalfGripSlapPack
             {
                 Vector2 delta = constrainedPoint - previousKnobHand; previousKnobHand = constrainedPoint;
                 if (Mathf.Abs(delta.y) < 0.00001f) return;
+                WiperSpeed previous = knob.Setting;
                 knob.Move(delta.y); state.SetSpeed(knob.Setting);
-                DrawDial(); RefreshPose(); return;
+                if (previous != knob.Setting)
+                {
+                    if (detentAudio != null) detentAudio.Click(0.25f);
+                    RefreshPose();
+                }
+                return;
             }
             if ((constrainedPoint - position).sqrMagnitude < 0.01f) return;
             state.SetPull(startPull - Mathf.DeltaAngle(startAngle, HandAngle()) / TravelDegrees);
@@ -91,16 +91,6 @@ namespace HalfGripSlapPack
             if (state != null) { state.Release(); RefreshPose(); }
         }
 
-        private void DrawDial()
-        {
-            byte[] pixels = WiperStalkPixels.BuildRotation((int)knob.Setting, knob.Position - (int)knob.Setting);
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                uint rgba = SignalStalkPixels.Palette[pixels[i]];
-                dialColors[i] = new Color32((byte)(rgba >> 24), (byte)(rgba >> 16), (byte)(rgba >> 8), (byte)rgba);
-            }
-            dialTexture.SetPixels32(dialColors); dialTexture.Apply(false, false);
-        }
         internal void RefreshPose()
         {
             if (state == null) return;
@@ -110,9 +100,6 @@ namespace HalfGripSlapPack
                 if (settings[i])
                 {
                     settings[i].enabled = i == (int)state.Speed;
-                    Texture texture = RotatingKnob ? dialTexture : restTextures[i];
-                    settings[i].sharedMaterial.SetTexture("_BaseMap", texture);
-                    settings[i].sharedMaterial.SetTexture("_MainTex", texture);
                 }
         }
 
@@ -121,8 +108,8 @@ namespace HalfGripSlapPack
         protected override void StepDirect(float dt) { }
         protected override void ApplyPose() { RefreshPose(); }
         private void CancelHold() { blockRelease = false; Release(); enabled = false; }
-        private void OnApplicationFocus(bool focused) { if (!focused && IsGrabbed) CancelHold(); }
-        private void OnApplicationPause(bool paused) { if (paused && IsGrabbed) CancelHold(); }
-        private void OnDisable() { if (IsGrabbed) Release(); }
+        private void OnApplicationFocus(bool focused) { if (!focused) { if (IsGrabbed) CancelHold(); if (detentAudio != null) detentAudio.Stop(); } }
+        private void OnApplicationPause(bool paused) { if (paused) { if (IsGrabbed) CancelHold(); if (detentAudio != null) detentAudio.Stop(); } }
+        private void OnDisable() { if (IsGrabbed) Release(); if (detentAudio != null) detentAudio.Stop(); }
     }
 }

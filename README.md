@@ -5,16 +5,20 @@ Features: adjustable rear-view mirror, working window cranks, turn signals, and 
 
 ## Windshield-wiper prototype
 
-Version **0.5.1** on `test/windshield-wipers` includes the tested turn-signal work and adds a shorter stalk on the right of the steering column,
+Version **0.5.2** on `test/windshield-wipers` includes the tested turn-signal work and adds a shorter stalk on the right of the steering column,
 angled upward and stopping before the shifter. The grip uses the same code-drawn 128×20 pixel artwork and depth-cutout rendering as the signal stalk,
 with a windshield symbol and a speed sleeve marked **0 / I / II / III**. No external images are needed.
 
 - **Left-click and grab the end, then pull down:** spray and wipe continuously while held past the wash detent. Tiny movements on grabbing do not trigger spray.
-- **Release:** the stalk springs to neutral and the spray stops. The selected speed stays unchanged; with the dial off, the blades finish their current cycle and park.
+- **Release:** the stalk springs to neutral and the spray stops. Each washer pull guarantees **at least three full out-and-back wipe cycles**, including
+  cycles completed while held. A quick tap finishes all three automatically. A longer hold keeps wiping, then finishes the current cycle on release.
+  The blades then park if the dial is off, or return to the selected speed. A partial stroke already underway when washing starts does not count as a full cycle.
 - **Hold right-click on the end, then drag up/down:** rotate the speed sleeve up through **off → slow → medium → fast**, or back down to off.
-  Clicking without moving leaves the speed unchanged. The dial has hard stops and snaps to its selected detent on release; its markings roll as you turn it.
+  Clicking without moving leaves the speed unchanged. The dial clicks between **exactly four fixed positions**, with a quiet mechanical click per change.
+  The sleeve and markings stay on a detent even while held; there are no intermediate positions. Off and fast are hard stops.
   The native hand stays on the grip and the cursor returns there on release. Speeds take 2.4, 1.4 and 0.8 seconds per complete out-and-back cycle.
-- Washing uses at least medium speed, retaining fast if already selected. Changing speed preserves blade position. Switching off finishes the cycle before parking.
+- Washing and its minimum wipe burst use at least medium speed, retaining fast if already selected. Changing speed preserves blade position.
+  Switching off finishes the washer minimum (if pending) and the current cycle before parking.
 
 Two dark rubber/metal wipers are fitted to the actual front windshield triangles, with a tandem sweep constrained to the opening.
 The geometry follows the glass's slight center bend and moves with the car. It rebuilds after a body change and remains visible in the outside view.
@@ -205,7 +209,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The ninety-five tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The 102 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
@@ -219,7 +223,8 @@ Stalk layout tests check grip alignment, undistorted grip/boot proportions acros
 Wiper tests cover all speed detents, distinct speeds, held washing, release and self-parking, speed changes without snapping, wash override,
 pause and invalid input, plus blade clearance through the entire sweep on trapezoidal and stock-shaped glass.
 Knob tests cover stationary clicks, up/down dragging, steady holds, detent hysteresis, hard stops without windup, release/re-grab behavior,
-invalid input, phase continuity and animated sleeve markings. Spray tests check the inward driver adjustment and unchanged passenger trajectory.
+invalid input, phase continuity and exactly four discrete positions throughout a drag. Washer tests cover short taps, long holds, partial strokes,
+repeated pulls, off commands, and speed restoration after the three-cycle minimum. Spray tests check the inward driver adjustment and unchanged passenger trajectory.
 Pixel-art checks enforce the native 128×20 resolution, small opaque palette, transparent border, and connected grip/shaft/boot silhouette.
 
 ## Window prototype playtest

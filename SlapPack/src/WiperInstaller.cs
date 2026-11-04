@@ -117,12 +117,11 @@ namespace HalfGripSlapPack
             int priority = wheelHit ? wheelHit.sortingLayer : 0;
             hit.sortingLayer = priority < int.MaxValue ? priority + 1 : priority;
             stalk = root.AddComponent<WiperStalk>(); stalk.attachedCollider = hit;
-            var rotationTexture = new Texture2D(SignalStalkLayout.TextureWidth, SignalStalkLayout.TextureHeight, TextureFormat.RGBA32, false) {
-                name = "SlapPack rotating wiper sleeve", filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp
-            };
-            owned.Add(rotationTexture);
-            stalk.Initialize(state, hand, car.fpvCamera, normal, length, artwork, rotationTexture);
-            context.Log.LogInfo("Wipers attached: pull down and hold to wash/wipe; hold right-click on the grip and drag up/down to rotate off/slow/medium/fast. Two blades fitted to front glass.");
+            TurnSignalAudio clicks = null;
+            try { clicks = new TurnSignalAudio(transform, hand.gameObject, owned); }
+            catch (Exception error) { context.Log.LogWarning("Wiper dial click unavailable: " + error.Message); }
+            stalk.Initialize(state, hand, car.fpvCamera, normal, length, artwork, clicks);
+            context.Log.LogInfo("Wipers attached: pull down to wash with a three-cycle minimum; hold right-click and drag up/down through four fixed speed detents. Two blades fitted to front glass.");
         }
 
         private void LateUpdate()

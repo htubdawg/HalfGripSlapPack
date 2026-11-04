@@ -1,5 +1,3 @@
-using System;
-
 namespace HalfGripSlapPack
 {
     internal static class WiperStalkPixels
@@ -32,22 +30,5 @@ namespace HalfGripSlapPack
 
         private static void Set(byte[] pixels, int x, int y, byte color) => pixels[y * SignalStalkLayout.TextureWidth + x] = color;
 
-        internal static byte[] BuildRotation(int speed, float offset)
-        {
-            byte[] pixels = Build(speed);
-            int rows = (int)Math.Round(Math.Max(-0.6f, Math.Min(0.6f, offset)) * 5);
-            if (rows == 0) return pixels;
-            byte[] face = Build(speed), neighbor = Build(Math.Max(0, Math.Min(3, speed + (rows > 0 ? 1 : -1))));
-            for (int y = 8; y <= 12; y++)
-                for (int x = 6; x <= 18; x++)
-                {
-                    int sourceY = y + rows;
-                    byte[] source = face;
-                    if (sourceY > 12) { sourceY -= 5; source = neighbor; }
-                    if (sourceY < 8) { sourceY += 5; source = neighbor; }
-                    pixels[y * SignalStalkLayout.TextureWidth + x] = source[sourceY * SignalStalkLayout.TextureWidth + x];
-                }
-            return pixels;
-        }
     }
 }

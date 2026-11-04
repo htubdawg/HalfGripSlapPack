@@ -51,11 +51,11 @@ internal static class WiperKnobTests
             knob.Move(-100); Equal(0, knob.Position);
             knob.Move(0.25f); Assert(knob.Setting == WiperSpeed.Slow, "Overshoot delayed reversal at off.");
         });
-        check("Release snaps the sleeve to its selected detent and a new grab starts there", () =>
+        check("Sleeve stays on a detent throughout the grab and release", () =>
         {
             var knob = new WiperKnobRotation(); knob.Begin(WiperSpeed.Off); knob.Move(0.32f);
             knob.Release(); Equal(1, knob.Position); knob.Begin(knob.Setting); knob.Move(0.1f);
-            Equal(1.25f, knob.Position); Assert(knob.Setting == WiperSpeed.Slow, "Re-grab reused stale hand travel.");
+            Equal(1, knob.Position); Assert(knob.Setting == WiperSpeed.Slow, "Re-grab reused stale hand travel.");
         });
         check("Invalid knob input cannot corrupt speed or position", () =>
         {
@@ -97,18 +97,17 @@ internal static class WiperKnobTests
                     Assert(moved.X > -0.7f && moved.X < 0, "Driver spray left its intended inner-left glass area.");
                 }
         });
-        check("Rotating sleeve scrolls its markings while leaving the stalk silhouette fixed", () =>
+        check("Dial has exactly four discrete positions while dragging in either direction", () =>
         {
-            byte[] rest = WiperStalkPixels.Build(1), rolled = WiperStalkPixels.BuildRotation(1, 0.4f);
-            bool changed = false;
-            for (int y = 0; y < 20; y++)
-                for (int x = 0; x < 128; x++)
+            var knob = new WiperKnobRotation(); knob.Begin(WiperSpeed.Off);
+            var visited = new System.Collections.Generic.HashSet<float>();
+            foreach (float delta in new[] { 0.01f, -0.01f })
+                for (int frame = 0; frame < 160; frame++)
                 {
-                    int i = y * 128 + x;
-                    if (x < 6 || x > 18 || y < 8 || y > 12) Assert(rest[i] == rolled[i], "Rotation moved the stalk body.");
-                    else if (rest[i] != rolled[i]) changed = true;
+                    knob.Move(delta); visited.Add(knob.Position);
+                    Equal((int)knob.Setting, knob.Position);
                 }
-            Assert(changed, "The sleeve markings did not rotate.");
+            Assert(visited.SetEquals(new[] { 0f, 1f, 2f, 3f }), "Dial exposed an intermediate position or skipped a detent.");
         });
     }
 }

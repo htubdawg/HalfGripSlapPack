@@ -47,5 +47,14 @@ namespace HalfGripSlapPack
             source.volume = Mathf.Clamp01(volume);
             if (cue != RelayCue.None) source.PlayOneShot(cue == RelayCue.Tick ? tick : tock);
         }
+
+        internal void Click(float volume)
+        {
+            if (!source) return;
+            source.volume = Mathf.Clamp01(volume);
+            source.PlayOneShot(tick);
+        }
+
+        internal void Stop() { if (source) source.Stop(); }
     }
 }

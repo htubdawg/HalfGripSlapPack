@@ -59,12 +59,12 @@ internal static class WiperTests
             float before = state.Sweep; state.Release();
             Equal(0, state.Pull); Equal(before, state.Sweep);
             Assert(!state.Washing, "Spray remained active after release.");
-            state.Tick(2); Assert(state.Parked, "Off wipers did not park after release."); Equal(0, state.Sweep);
+            state.Tick(3.9f); Assert(state.Parked, "Off wipers did not park after the minimum three cycles."); Equal(0, state.Sweep);
         });
-        check("Washer release resumes the selected speed without moving the dial", () =>
+        check("Washer burst resumes the selected speed after three cycles without moving the dial", () =>
         {
             var state = new WiperState(); state.SetSpeed(WiperSpeed.Slow); state.SetPull(1); state.Tick(0.7f);
-            Equal(1, state.Sweep); state.Release(); state.Tick(0.6f);
+            Equal(1, state.Sweep); state.Release(); state.Tick(3.5f); Equal(0, state.Sweep); state.Tick(0.6f);
             Equal(0.5f, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && !state.Parked, "Slow setting was lost.");
         });
         check("Wash never slows fast wipers down", () =>
@@ -136,6 +136,60 @@ internal static class WiperTests
                 hashes.Add(Convert.ToBase64String(pixels));
             }
             Assert(hashes.Count == 4, "Dial setting has no visual indication.");
+        });
+        check("A washer tap completes exactly three full wipe cycles before parking", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1); state.Release();
+            Assert(!state.Washing, "Spray stayed on after the tap.");
+            for (int cycle = 1; cycle <= 3; cycle++)
+            {
+                state.Tick(0.5f); Equal(1, state.Sweep);
+                state.Tick(0.5f); Equal(0, state.Sweep);
+                Assert(state.Parked == (cycle == 3), "Washer parked before or after its three-cycle minimum.");
+            }
+            state.Tick(5); Equal(0, state.Sweep); Assert(state.Parked, "An extra cycle started.");
+        });
+        check("Wipes completed while washing count toward the three-cycle minimum", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1); state.Tick(1); state.Release();
+            state.Tick(1); Assert(!state.Parked, "Only two cycles were completed.");
+            state.Tick(1); Assert(state.Parked, "Three extra cycles were queued on release.");
+        });
+        check("A long washer hold runs continuously and only finishes its current cycle on release", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1);
+            for (int frame = 0; frame < 18; frame++) { state.SetPull(1); state.Tick(0.25f); }
+            Assert(!state.Parked && state.Washing, "A held washer stopped after three cycles.");
+            Equal(1, state.Sweep); state.Release(); state.Tick(0.5f);
+            Assert(state.Parked, "A steady hold continually restarted the minimum cycle count.");
+        });
+        check("Starting wash mid-stroke guarantees three full cycles after the partial one", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Slow); state.Tick(1);
+            state.SetPull(1); state.Release(); state.SetSpeed(WiperSpeed.Off);
+            state.Tick(0.5f); Equal(0, state.Sweep);
+            state.Tick(2); Assert(!state.Parked, "An existing partial cycle counted as a full wash wipe.");
+            state.Tick(1); Assert(state.Parked, "Wash did not finish its third complete cycle.");
+        });
+        check("A new washer pull rearms its own minimum without snapping the blades", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetPull(1); state.Release(); state.Tick(1.5f);
+            float before = state.Sweep; state.SetPull(1); state.Release(); Equal(before, state.Sweep);
+            state.Tick(2.5f); Assert(!state.Parked, "Second pull inherited too few remaining cycles.");
+            state.Tick(1); Assert(state.Parked, "Second pull failed to park after three full cycles.");
+        });
+        check("Selecting off during a washer burst still completes its minimum", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Fast);
+            state.SetPull(1); state.Tick(0.25f); state.Release(); state.SetSpeed(WiperSpeed.Off);
+            state.Tick(1.5f); Assert(!state.Parked, "Off canceled the washer minimum.");
+            state.Tick(1); Assert(state.Parked, "Off failed to park after the minimum.");
+        });
+        check("A large frame finishes the washer burst and uses leftover time at the selected speed", () =>
+        {
+            var state = new WiperState(2, 1, 0.5f); state.SetSpeed(WiperSpeed.Slow);
+            state.SetPull(1); state.Release(); state.Tick(4);
+            Equal(1, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && !state.Parked, "Burst did not return to slow.");
         });
     }
 
