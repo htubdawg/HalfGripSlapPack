@@ -11,12 +11,13 @@ namespace HalfGripSlapPack
         private readonly Material on, off;
         private bool illuminated;
 
-        internal SignalDashLamp(Transform parent, Vector3 center, bool right, int layer, List<Object> owned)
+        internal SignalDashLamp(Transform parent, Vector3 center, bool right, int layer, List<Object> owned, float scale = 1)
         {
             root = new GameObject(right ? "SlapPack.RightIndicator" : "SlapPack.LeftIndicator");
             owned.Add(root); root.layer = layer;
             root.transform.SetParent(parent, false);
             root.transform.localPosition = center;
+            root.transform.localScale = Vector3.one * scale;
             Material bezel = TurnSignalVisuals.Material(new Color(0.075f, 0.085f, 0.08f, 1), owned);
             TurnSignalVisuals.Polygon("IndicatorBezel", root.transform, Bevel(0.25f, 0.16f, 0.035f, 0), bezel, layer, owned);
             TurnSignalVisuals.Polygon("RecessedLens", root.transform, Bevel(0.223f, 0.134f, 0.025f, -0.008f),

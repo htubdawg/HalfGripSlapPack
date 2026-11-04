@@ -5,9 +5,9 @@ Features in development: adjustable rear-view mirror, working window cranks, tur
 
 ## Turn-signal prototype
 
-Version **0.4.2** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
-steering column, two inset green indicator lamps above the gauges inside the wheel rim, synchronized amber overlays at the stock front/rear
-lamp locations, and a relay tick/tock sound. **The revised lamp styling and audio still need an in-game playtest.**
+Version **0.4.3** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
+steering column, two inset green indicator lamps on the dashboard immediately left of the gear display, synchronized amber overlays at the
+stock front/rear lamp locations, and a relay tick/tock sound. **The revised lamp placement still needs an in-game playtest.**
 
 The stalk extends beyond the wheel rim and rests at an upward angle, clear of the radio. Its enlarged grip hitbox takes priority over
 the wheel where they overlap. It moves 14 degrees to each detent; input follows the actual lever arc so both directions have equal sensitivity.
@@ -22,7 +22,8 @@ Grab the stalk's end with the normal hand control and move it up/down:
   near center. Turning the wheel while parked does not cancel. Holding the stalk manually prevents automatic return until release.
 
 Cockpit indicators use smaller pixel-style arrow outlines in dark beveled lenses. Both remain dimly visible when off, with a restrained
-green glow on the active lamp. They blink with the exterior overlays, which are attached alongside the existing lamp meshes. The original headlights,
+green glow on the active lamp. The pair is compacted to fit the marked panel between the wheel and gear display, anchored to that display's
+frame rather than the wheel rim. They blink with the exterior overlays, which are attached alongside the existing lamp meshes. The original headlights,
 brake-light materials, steering, and car physics are not modified. The stalk stays fixed to the column rather than spinning with the wheel.
 Signals continue in the outside view while the interior stalk/arrows are hidden. Changing bodies rebuilds the exterior overlays.
 Disabling Slap Pack removes the stalk, arrows, overlays, and audio. Signals are local only: they are not replicated to remote
@@ -62,7 +63,7 @@ and log a warning about missing exterior locations.
 - Check full down/up latches until manually centered, and that all cockpit/exterior lamps blink on the correct side in sync.
 - Drive left and right turns, recenter steering, and confirm the stalk and lamps cancel. Repeat wheel movement while parked and confirm
   it stays latched. If cancellation feels too early/late, report the turn and configured thresholds.
-- Check the green arrows fit the instrument cluster without covering the gauges; placement is based on the stock cockpit screenshot.
+- Check the compact lamp pair fits the marked dashboard space just left of the gear display, clear of the wheel rim and gauges.
 - Check both off-state lenses remain visible and the active arrow is readable without the old oversized solid green shape.
 - Listen for one tick/tock pair per blink, including short taps, held-half signals and cancellation. Check pause, outside view, mute and
   volume settings, and confirm the other car audio is unaffected. Report whether the default relay volume is too loud or too quiet.

@@ -41,8 +41,8 @@ namespace HalfGripSlapPack
             Polygon(name, parent, new[] { new Vector3(x0, y0, z), new Vector3(x1, y0, z),
                 new Vector3(x1, y1, z), new Vector3(x0, y1, z) }, material, layer, owned);
 
-        internal static SignalDashLamp Arrow(Transform parent, Vector3 center, bool right, int layer, List<Object> owned) =>
-            new SignalDashLamp(parent, center, right, layer, owned);
+        internal static SignalDashLamp Arrow(Transform parent, Vector3 center, bool right, int layer, List<Object> owned, float scale = 1) =>
+            new SignalDashLamp(parent, center, right, layer, owned, scale);
 
         internal static void SetArrow(SignalDashLamp arrow, bool lit, bool visible)
         {

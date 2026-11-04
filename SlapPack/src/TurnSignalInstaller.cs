@@ -117,15 +117,47 @@ namespace HalfGripSlapPack
             stalk = root.AddComponent<TurnSignalStalk>();
             stalk.attachedCollider = collider;
             stalk.Initialize(signal, grabber, car.fpvCamera, normal, length);
-            Vector3 dash = wheel.transform.localPosition + new Vector3(0, radius * 0.62f, -0.12f);
-            leftArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.left * 0.5f, false, layer, owned);
-            rightArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.right * 0.5f, true, layer, owned);
+            const float lampScale = 0.8f, lampSpacing = 0.46f;
+            Vector3 dash = IndicatorPosition(target, parent, wheel.transform.localPosition);
+            leftArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.left * (lampSpacing * 0.5f), false, layer, owned, lampScale);
+            rightArrow = TurnSignalVisuals.Arrow(parent, dash + Vector3.right * (lampSpacing * 0.5f), true, layer, owned, lampScale);
             TurnSignalVisuals.SetArrow(leftArrow, false, true); TurnSignalVisuals.SetArrow(rightArrow, false, true);
             try { relay = new TurnSignalAudio(transform, grabber.gameObject, owned); }
             catch (Exception error) { context.Log.LogWarning("Relay sound unavailable; turn signals remain active: " + error.Message); }
             amber = TurnSignalVisuals.Material(new Color(1f, 0.4f, 0.015f, 1), owned);
             RebuildLamps();
             context.Log.LogInfo("Turn-signal stalk attached left of steering column. Down=left, up=right; halfway=tap/hold, full=latch. Cockpit arrows and amber lamps active.");
+        }
+
+        private static Vector3 IndicatorPosition(CarLink target, Transform parent, Vector3 wheelPosition)
+        {
+            // Mount the compact pair in the marked dashboard space immediately left of the gear
+            // display. Resolve its actual frame rather than positioning relative to the wheel rim.
+            const float panelHalfWidth = 0.43f, gap = 0.25f;
+            if (target.gearIndicator)
+            {
+                SpriteRenderer frame = target.gearIndicator.GetComponentInParent<SpriteRenderer>();
+                if (frame && frame.sprite)
+                {
+                    Bounds bounds = frame.sprite.bounds;
+                    Vector3 center = frame.transform.TransformPoint(bounds.center);
+                    center = parent ? parent.InverseTransformPoint(center) : center;
+                    float left = float.PositiveInfinity;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        Vector3 corner = bounds.center + new Vector3((i & 1) == 0 ? -bounds.extents.x : bounds.extents.x,
+                            (i & 2) == 0 ? -bounds.extents.y : bounds.extents.y, 0);
+                        Vector3 point = frame.transform.TransformPoint(corner);
+                        if (parent) point = parent.InverseTransformPoint(point);
+                        left = Mathf.Min(left, point.x);
+                    }
+                    return new Vector3(left - gap - panelHalfWidth, center.y, center.z - 0.08f);
+                }
+                Vector3 text = target.gearIndicator.transform.position;
+                if (parent) text = parent.InverseTransformPoint(text);
+                return text + new Vector3(-1.4f, 0.07f, -0.03f);
+            }
+            return wheelPosition + new Vector3(2.15f, 2.1f, 0.3f);
         }
 
         private void LateUpdate()
