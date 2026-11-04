@@ -234,6 +234,7 @@ internal static class Program
         });
         TurnSignalTests.Run(Check);
         SignalRelayTests.Run(Check);
+        SignalStalkLayoutTests.Run(Check);
         Console.WriteLine(passed + " tests passed.");
     }
 

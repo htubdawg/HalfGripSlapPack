@@ -100,13 +100,7 @@ namespace HalfGripSlapPack
             root.transform.SetParent(parent, false);
             root.transform.localPosition = wheel.transform.localPosition + normal * 0.15f;
             root.transform.localRotation = Quaternion.AngleAxis(-stalkUpAngle.Value, normal) * Quaternion.LookRotation(normal, Vector3.up);
-            Material shaft = TurnSignalVisuals.Material(new Color(0.13f, 0.14f, 0.16f, 1), owned);
-            Material knob = TurnSignalVisuals.Material(new Color(0.25f, 0.26f, 0.28f, 1), owned);
-            TurnSignalVisuals.Polygon("SignalShaft", root.transform, new[] { new Vector3(-0.08f, -0.11f, 0), new Vector3(-length + 0.25f, -0.08f, 0),
-                new Vector3(-length + 0.25f, 0.08f, 0), new Vector3(-0.08f, 0.11f, 0) }, shaft, layer, owned);
-            TurnSignalVisuals.Rectangle("SignalKnob", root.transform, -length - 0.32f, -0.20f, -length + 0.32f, 0.20f, -0.02f, knob, layer, owned);
-            TurnSignalVisuals.Rectangle("SignalKnobStripe", root.transform, -length - 0.23f, -0.025f, -length + 0.23f, 0.025f, -0.025f,
-                TurnSignalVisuals.Material(new Color(0.6f, 0.62f, 0.65f, 1), owned), layer, owned);
+            SignalStalkArtwork.Attach(root.transform, length, context.Sprites.LoadTexture("turn-signal-stalk.png"), layer, owned);
             var hit = new GameObject("SignalGrip"); owned.Add(hit); hit.layer = layer;
             hit.transform.SetParent(root.transform, false); hit.transform.localPosition = new Vector3(-length, 0, -0.03f);
             InteriorCircleCollider collider = hit.AddComponent<InteriorCircleCollider>();

@@ -5,9 +5,13 @@ Features in development: adjustable rear-view mirror, working window cranks, tur
 
 ## Turn-signal prototype
 
-Version **0.4.3** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
+Version **0.4.4** on `test/turn-signals` starts from the merged `main` branch. It adds a stalk extending from the left side of the
 steering column, two inset green indicator lamps on the dashboard immediately left of the gear display, synchronized amber overlays at the
-stock front/rear lamp locations, and a relay tick/tock sound. **The revised lamp placement still needs an in-game playtest.**
+stock front/rear lamp locations, and a relay tick/tock sound. **The new stalk artwork still needs an in-game playtest.**
+
+The stalk now uses original shaded pixel artwork: a ribbed rubber mounting boot, tapered metal shaft, chamfered plastic grip, molded
+ribs, edge wear and etched turn arrows. The grip and boot retain their proportions as the shaft stretches to the configured length.
+Its placement and native grab point are preserved. Install the complete `SlapPack` folder, including `sprites/turn-signal-stalk.png`.
 
 The stalk extends beyond the wheel rim and rests at an upward angle, clear of the radio. Its enlarged grip hitbox takes priority over
 the wheel where they overlap. It moves 14 degrees to each detent; input follows the actual lever arc so both directions have equal sensitivity.
@@ -127,7 +131,8 @@ It compiles against the game's reference assemblies; in-game behavior is still a
 ## Install and try the mirror
 
 Copy the `SlapPack` folder into `<game>/BepInEx/HalfGripMods/` alongside your other HalfGripTools mods. The layout must be
-`HalfGripMods/SlapPack/mod.json` and `HalfGripMods/SlapPack/src/*.cs`. HalfGripTools compiles the source when the game starts.
+`HalfGripMods/SlapPack/mod.json`, `HalfGripMods/SlapPack/src/*.cs`, and `HalfGripMods/SlapPack/sprites/turn-signal-stalk.png`.
+HalfGripTools compiles the source when the game starts.
 The development `.csproj` and its `bin`/`obj` folders are not needed in the game. Restart the game after changing source.
 
 - In the cockpit, grab the mirror casing with the normal hand/grab control and drag. The casing and glass tilt together
@@ -173,7 +178,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The sixty tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The sixty-five tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.
@@ -183,6 +188,7 @@ Turn-signal tests cover direction mapping, exact short-flash completion, held-ha
 changes, blink timing, left/right turn completion, parked/opposite-turn rejection, held cancellation override, and invalid inputs/settings.
 Relay tests cover click edges, cancellation, side changes, silent-phase handling, the paired three-flash sequence, sample duration,
 finite unclipped output, transient decay, and deterministic distinct tick/tock waveforms. Mixer routing and perceived sound quality require in-game testing.
+Stalk layout tests check grip alignment, undistorted grip/boot proportions across lengths, joined art sections, pivot alignment, and invalid lengths.
 
 ## Window prototype playtest
 
