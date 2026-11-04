@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -8,13 +7,21 @@ namespace HalfGripSlapPack
 {
     internal static class SignalStalkArtwork
     {
-        internal static void Attach(Transform parent, float length, Texture2D texture, int layer, List<Object> owned)
+        internal static void Attach(Transform parent, float length, int layer, List<Object> owned)
         {
-            if (!texture) throw new InvalidOperationException("Missing sprites/turn-signal-stalk.png. Install the complete SlapPack folder, including sprites.");
-            if (texture.width != SignalStalkLayout.TextureWidth || texture.height != SignalStalkLayout.TextureHeight)
-                throw new InvalidOperationException("Unexpected turn-signal-stalk.png dimensions; install the matching source and sprites together.");
-            texture.filterMode = FilterMode.Point;
-            texture.wrapMode = TextureWrapMode.Clamp;
+            var texture = new Texture2D(SignalStalkLayout.TextureWidth, SignalStalkLayout.TextureHeight, TextureFormat.RGBA32, false) {
+                name = "SlapPack hand-pixeled signal stalk", filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp
+            };
+            owned.Add(texture);
+            byte[] indicesInPalette = SignalStalkPixels.Build();
+            var colors = new Color32[indicesInPalette.Length];
+            for (int i = 0; i < colors.Length; i++)
+            {
+                uint rgba = SignalStalkPixels.Palette[indicesInPalette[i]];
+                colors[i] = new Color32((byte)(rgba >> 24), (byte)(rgba >> 16), (byte)(rgba >> 8), (byte)rgba);
+            }
+            texture.SetPixels32(colors);
+            texture.Apply(false, true);
             var layout = new SignalStalkLayout(length);
             float[] cuts = { SignalStalkLayout.SourceLeft, SignalStalkLayout.GripCut, SignalStalkLayout.BootCut, SignalStalkLayout.SourceRight };
             var vertices = new Vector3[12]; var uv = new Vector2[12]; var indices = new int[18];

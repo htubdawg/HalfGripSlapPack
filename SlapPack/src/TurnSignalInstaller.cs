@@ -100,7 +100,7 @@ namespace HalfGripSlapPack
             root.transform.SetParent(parent, false);
             root.transform.localPosition = wheel.transform.localPosition + normal * 0.15f;
             root.transform.localRotation = Quaternion.AngleAxis(-stalkUpAngle.Value, normal) * Quaternion.LookRotation(normal, Vector3.up);
-            SignalStalkArtwork.Attach(root.transform, length, context.Sprites.LoadTexture("turn-signal-stalk.png"), layer, owned);
+            SignalStalkArtwork.Attach(root.transform, length, layer, owned);
             var hit = new GameObject("SignalGrip"); owned.Add(hit); hit.layer = layer;
             hit.transform.SetParent(root.transform, false); hit.transform.localPosition = new Vector3(-length, 0, -0.03f);
             InteriorCircleCollider collider = hit.AddComponent<InteriorCircleCollider>();

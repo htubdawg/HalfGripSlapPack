@@ -2,13 +2,13 @@ using System;
 
 namespace HalfGripSlapPack
 {
-    // Three source-image sections preserve the grip and bellows while only the metal shaft
-    // stretches to the configured length. Source coordinates use Unity's bottom-left origin.
+    // Three procedural sprite sections preserve the grip and bellows while only the metal shaft
+    // stretches to the configured length. Coordinates use Unity's bottom-left origin.
     internal sealed class SignalStalkLayout
     {
-        internal const int TextureWidth = 2172, TextureHeight = 724;
-        internal const float SourceLeft = 20, GripCut = 750, BootCut = 1800, SourceRight = 2151;
-        internal const float SourceBottom = 163, SourceTop = 538, SourceCenterY = 345;
+        internal const int TextureWidth = 128, TextureHeight = 20;
+        internal const float SourceLeft = 2, GripCut = 26, BootCut = 112, SourceRight = 126;
+        internal const float SourceBottom = 2, SourceTop = 18, SourceCenterY = 10;
         internal const float GripWidth = 0.9f;
         internal const float PixelScale = GripWidth / (GripCut - SourceLeft);
         internal readonly float GripLeft, GripRight, BootLeft;

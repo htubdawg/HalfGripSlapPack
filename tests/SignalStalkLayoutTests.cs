@@ -48,5 +48,42 @@ internal static class SignalStalkLayoutTests
                 if (!rejected) throw new Exception("Invalid stalk artwork layout accepted.");
             }
         });
+        check("Stalk sprite is authored at a small native pixel resolution", () =>
+        {
+            byte[] pixels = SignalStalkPixels.Build();
+            if (SignalStalkLayout.TextureWidth != 128 || SignalStalkLayout.TextureHeight != 20 || pixels.Length != 2560)
+                throw new Exception("Stalk sprite resolution increased.");
+        });
+        check("Stalk pixel art uses a limited opaque palette and transparent background", () =>
+        {
+            byte[] pixels = SignalStalkPixels.Build();
+            if (SignalStalkPixels.Palette.Length > 8 || SignalStalkPixels.Palette[0] != 0)
+                throw new Exception("Stalk palette is not limited or transparent.");
+            foreach (byte pixel in pixels)
+                if (pixel >= SignalStalkPixels.Palette.Length || (pixel != 0 && (SignalStalkPixels.Palette[pixel] & 255) != 255))
+                    throw new Exception("Invalid or antialiased stalk pixel.");
+        });
+        check("Code-drawn grip, shaft and boot form one connected silhouette", () =>
+        {
+            byte[] pixels = SignalStalkPixels.Build();
+            int width = SignalStalkLayout.TextureWidth, height = SignalStalkLayout.TextureHeight;
+            for (int x = 0; x < width; x++)
+                if (pixels[x] != 0 || pixels[(height - 1) * width + x] != 0) throw new Exception("Sprite reaches texture border.");
+            for (int y = 0; y < height; y++)
+                if (pixels[y * width] != 0 || pixels[y * width + width - 1] != 0) throw new Exception("Sprite reaches texture border.");
+            var pending = new System.Collections.Generic.Queue<int>();
+            var reached = new bool[pixels.Length];
+            int first = Array.FindIndex(pixels, p => p != 0);
+            pending.Enqueue(first); reached[first] = true;
+            while (pending.Count > 0)
+            {
+                int index = pending.Dequeue(), x = index % width, y = index / width;
+                foreach (int neighbor in new[] { x > 0 ? index - 1 : -1, x + 1 < width ? index + 1 : -1,
+                    y > 0 ? index - width : -1, y + 1 < height ? index + width : -1 })
+                    if (neighbor >= 0 && pixels[neighbor] != 0 && !reached[neighbor]) { reached[neighbor] = true; pending.Enqueue(neighbor); }
+            }
+            for (int i = 0; i < pixels.Length; i++)
+                if (pixels[i] != 0 && !reached[i]) throw new Exception("Disconnected stalk art section.");
+        });
     }
 }
