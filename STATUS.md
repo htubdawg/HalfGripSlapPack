@@ -1,3 +1,15 @@
+# Test update 0.8.4 — cockpit visibility and version identification
+
+The initial side/rear test commit retained manifest 0.8.3 and incorrectly gated the precipitation renderer on `Source.enabled`. Decompiling HalfGripRefs 0.419 `CameraSwitch.UpdateCameraView` confirms the game calls `SetWindshields(false)` in cockpit view, disabling the original glass MeshRenderers while leaving their GameObjects active. As a result the new overlays were hidden from inside.
+
+0.8.4 gates the owned weather renderer on source GameObject activation and window opening only, matching the existing windshield overlay. The stock renderer flag, original materials and camera settings remain unchanged. Per-pixel opacity caps, sparse deposition, natural clearing and moving-window clipping are retained.
+
+Manifest, README and development assembly version are now 0.8.4. Future player-facing test updates must bump them together. Confirm `Loaded Slap Pack 0.8.4` or mod-manager version 0.8.4 after installation. This update is only on `test/side-rear-weather`; main is unchanged.
+
+Validation: compile check passes with zero warnings/errors; all 149 model/control tests pass. Static inspection confirms the former gate contradicted the game's cockpit visibility behavior. Live Unity/GPU appearance, both bodies and mirror/camera transitions still need a playtest; no in-game visual verification is claimed.
+
+---
+
 # Side/rear window weather — implementation for playtesting
 
 Work is on `test/side-rear-weather`, based on the GitHub main snapshot retrieved on November 4, 2026. Main and the earlier wiper test branch remain unchanged; this feature is prepared for playtesting on the test branch.

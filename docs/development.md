@@ -81,3 +81,7 @@ refraction or performance pass.
 `WindowInstaller.MovingPane` maps matching source indices to the door's open fraction. Weather geometry moves with that glass, clips against its aperture and keeps UVs in glass coordinates; fresh deposition is restricted to the exposed part. The original glass meshes/materials remain unchanged. No refraction camera/pass is added for side or rear windows.
 
 The expanded model suite has 149 passing tests. Live Unity rendering, mesh discovery on both bodies, mirror visibility and frame-time cost still require the runtime checks in STATUS.md.
+
+### Test build 0.8.4 visibility correction
+
+The game intentionally disables native glass MeshRenderers in cockpit view (`CameraSwitch.SetWindshields(false)`). Owned precipitation follows source GameObject activation, not the native renderer's enabled flag. Using that flag hid the initial side/rear effect in the cockpit. Manifest, README and development assembly version identify this correction as 0.8.4; live rendering remains to be verified.

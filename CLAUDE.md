@@ -9,3 +9,5 @@
 - Private game DLLs and reference assets remain outside this repository and any distribution. Build against HalfGripRefs and HalfGripTools; see README.
 - Run the compile check and existing model tests for gameplay/rendering changes. Do not claim that these validate Unity/GPU rendering or live Open World behavior.
 - Update STATUS.md with the final behavior, validation and remaining runtime checks.
+
+- Increment `SlapPack/mod.json` for every player-facing behavior update, including test branches. Keep the README version and development project Version aligned so installed test builds are identifiable.

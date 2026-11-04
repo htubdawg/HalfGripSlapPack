@@ -132,7 +132,10 @@ namespace HalfGripSlapPack
 		{
 			if (!Source) { renderer.enabled = false; return; }
 			if (open != lastOpen) Rebuild(car.transform, open);
-			renderer.enabled = Source.enabled && Source.gameObject.activeInHierarchy && open < 1;
+			// CameraSwitch deliberately disables the original glass renderer in
+			// cockpit view. The owned precipitation must remain visible there,
+			// just like the windshield overlay; only body activation gates it.
+			renderer.enabled = Source.gameObject.activeInHierarchy && open < 1;
 			Vector3 flow = car.transform.InverseTransformDirection(Vector3.down) * (Field.Rear ? 0.025f : 0.045f)
 				+ relative * (Field.Rear ? 0.00035f : 0.0018f);
 			Field.Step(dt, weather.Rain, weather.Snow, Mathf.Max(0, -Vector3.Dot(relative, Normal)), Vector3.Dot(flow, Right), Vector3.Dot(flow, Up), open);
