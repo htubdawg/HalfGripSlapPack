@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <OpenWorldSrcDir Condition="'$(OpenWorldSrcDir)' == ''">$(MSBuildThisFileDirectory)../../../HalfGripOpenWorld/OpenWorld/src</OpenWorldSrcDir>
+    <HalfGripRefsDir Condition="'$(HalfGripRefsDir)' == ''">$(MSBuildThisFileDirectory)../../../HalfGripRefs</HalfGripRefsDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../SlapPack/src/OptionalWeatherApi.cs" Link="OptionalWeatherApi.cs" />
+    <Compile Include="$(OpenWorldSrcDir)/WeatherView.cs" Link="WeatherView.cs" />
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(HalfGripRefsDir)/game/HalfGrip_Data/Managed/UnityEngine.CoreModule.dll</HintPath></Reference>
+  </ItemGroup>
+  <Target Name="CheckApiSource" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(OpenWorldSrcDir)/WeatherView.cs')" Text="Point OpenWorldSrcDir at the Open World API test branch's OpenWorld/src directory (WeatherView v1, 0.24.0+)." />
+  </Target>
+</Project>

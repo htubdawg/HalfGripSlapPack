@@ -163,8 +163,7 @@ namespace HalfGripSlapPack
 			if (enableWeather.Value)
 			{
 				weather = new WindshieldWeather(car, glass, bladeOwned, message => context.Log.LogWarning(message), rainObscuration.Value, refractionSettings);
-				if (refractionSettings.Enabled.Value)
-					ModLog.Info(context.Log, "Windshield refraction: same-frame color copy, width=" + refractionSettings.Width.Value + ". Disable RefractionEnabled for an A/B performance comparison.");
+				ModLog.Info(context.Log, "Windshield refraction configured: enabled=" + refractionSettings.Enabled.Value + ", same-frame copy width=" + refractionSettings.Width.Value + ", strength=" + refractionSettings.Strength.Value + ".");
 				ModLog.Info(context.Log, "Windshield precipitation attached: vanilla fixed medium intensity; optional Open World 0–1 rain/snow; manual wiper selection.");
 			}
 		}

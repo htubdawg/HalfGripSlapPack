@@ -1,16 +1,28 @@
-# Proposed Open World weather API
+# Open World WeatherView v1 integration
 
-The current SlapPack adapter reads `Sky.ready`, eased precipitation, `Storms.SnowShare`, wind and the world-height offset through reflection. The inspected Open World source has no public weather snapshot API. Keep that adapter isolated until an upstream public contract is available.
+The public publisher is available on [claude/nifty-babbage-6o4kay](https://github.com/htubdawg/HalfGripOpenWorld/tree/claude/nifty-babbage-6o4kay), since Open World 0.24.0. SlapPack 0.8.1 consumes this contract without a compile-time reference to Open World. No upstream branch changes or merges are made here.
 
-A useful public, versioned contract would expose a `TryGetLocalWeather(out WeatherSnapshot snapshot)` method for the current player. A snapshot should include:
+`HalfGripOpenWorld.WeatherView.ApiVersion` is a public static `int` getter returning 1. SlapPack validates that version and binds this public method once:
 
-| Value | Meaning |
-| --- | --- |
-| Ready/available result | False before initialization, outside an active Open World race, or after unload. |
-| Rain intensity | Final eased local rain intensity, 0–1, after cutoff and rain/snow splitting. |
-| Snow intensity | Final eased local snow intensity, 0–1; rain + snow no greater than 1. |
-| World wind velocity | Explicit world-space vector in Unity units/second, with direction convention documented. |
+```csharp
+public static bool TryGetLocalWeather(out float rain, out float snow, out UnityEngine.Vector3 wind)
+```
 
-The publisher should apply floating-origin height offsets itself. Intensities should describe weather at the car, independently of particle render-budget cuts; cloud coverage and road wetness are separate quantities. Polling should be inexpensive and not allocate every frame. Return false safely during scene transitions.
+Rain and snow are the final eased local falling intensities, after cutoff and height splitting but before particle graphics budgets. Their sum is at most 1. Wind is world-space Unity units/second, in the direction the air moves (x east, z north, y zero). False means inactive, with zero output values. The publisher owns activation, snow share, cutoff and floating-origin handling.
 
-SlapPack should prefer this public API when available, keep Open World optional, and fall back cleanly if the version is unsupported. Test dry/rain/snow/sleet, load order, origin shifts, scene transitions and graphics-budget changes. A contract should be agreed with the Open World maintainer before changing their mod; this document is a proposal, not a published API or a sent request.
+`OptionalWeatherApi<TWind>` validates public version/signature and creates a strongly typed delegate. Polling does not use `MethodInfo.Invoke`, a reflected snapshot struct, argument arrays or boxed wind values. Discovery retries for load order. Vanilla runs independently when Open World is absent/inactive; an installed incompatible publisher warns once and falls back to fixed vanilla flags. Private Sky/Storms/Network field reads are removed.
+
+## Reproduce the contract check
+
+Check out the API branch separately and point the harness at its source and the private game references:
+
+```bash
+source /workspace/setup-halfgrip/activate.sh
+dotnet run --project tests/WeatherApi.Integration/WeatherApi.Integration.csproj -c Release \
+  -p:OpenWorldSrcDir=/path/to/HalfGripOpenWorld/OpenWorld/src \
+  -p:HalfGripRefsDir=/workspace/HalfGripRefs
+```
+
+The harness links the actual upstream WeatherView.cs; it does not vendor or reimplement the publisher. Only its internal `Origin.Active` dependency is stubbed. It checks inactive values, sleet, unchanged world wind, origin activation, Clear/restart and 10,000 delegate polls with zero managed allocation after warmup. The ordinary model tests separately reject unsupported versions and signatures without Unity references.
+
+Live optional-mod loading, scene changes and rendering still need an in-game check. With verbose logging, the active provider should read `Open World WeatherView v1`. Test the two mod branches together; the older 0.23.9 publisher in the supplied 0.8.0 log does not have this public contract.

@@ -3,7 +3,44 @@ A collection of new things to interact with in your car.
 
 Features: adjustable mirror, working window cranks, turn signals, and manual windshield wipers with rain/slush interaction.
 
-## Same-frame windshield refraction — 0.8.0
+## Same-frame windshield refraction — 0.8.1
+
+Version 0.8.1 fixes two causes of disappearing distortion: clamping the water quantity also flattened its surface, and point filtering
+could hide fractional-texel sampling shifts. Persistent droplet **relief** now lives separately from water mass, so saturated glass retains
+surface detail. Impacts/washer fluid build relief; runoff transports it, it gradually relaxes, and the rubber clears it. No independent
+wave animation is added. Small field slopes receive a bounded optical response, and meaningful vertex offsets are quantized to whole scene-copy
+texels (tiny numerical noise remains zero). Quantization is cached with the field/dimensions; it is not recomputed per vertex every frame.
+The added scalar field remains inside the existing 20 Hz simulation budget.
+
+SlapPack now uses the public **WeatherView v1** API from [Open World's API test branch](https://github.com/htubdawg/HalfGripOpenWorld/tree/claude/nifty-babbage-6o4kay)
+(Open World 0.24.0+). Use that branch for Open World testing; neither mod branch is merged by this work. The old private Sky/Storms reads are
+removed. A version/signature-checked public delegate returns final rain, snow and world-space wind without per-poll reflection/boxing.
+Vanilla works without Open World; absent/inactive/unsupported APIs use vanilla flags, with a warning when an installed Open World lacks v1.
+
+### Refraction diagnosis
+
+For the next playtest, enable the real effect and verbose logging, then restart:
+
+```ini
+[Wipers]
+RefractionEnabled = true
+RefractionCaptureWidth = 320
+RefractionStrength = 0.008
+
+[Diagnostics]
+VerboseLogging = true
+RefractionDebugTint = false
+```
+
+Every five seconds, `Windshield refraction diagnostics` reports cumulative **callbacks/queued/records/copies/draws**, the copy size, last draw
+frame, wet/visible/shifted vertex counts and the mean/peak displacement in **scene-copy texels**. These count command submission, not measured
+GPU pixel coverage. Provider changes should report **Open World WeatherView v1** when that world is active. If counters do not advance, or
+`shifted` is zero on wet glass, the log now separates that from a weak-looking effect.
+
+For a direct visual check, set `RefractionDebugTint = true` and restart: the refraction draw uses a solid magenta wet mask (a white source texture, independent of scene alpha). This
+can prove visible mesh/shader output where counters alone cannot; it does not prove the scene copy is visually correct. Leave it false for normal play. If magenta does not appear, supply the new log;
+if it does appear but distortion is still subtle, the sampled optics can be assessed separately. This diagnostic creates no extra camera.
+
 
 The weather experiment stays on **`test/windshield-weather`**, based on `test/windshield-wipers`. No branches have been merged.
 Version 0.8.0 replaces the auxiliary-camera experiment with a same-frame scene-color copy from the existing cockpit world camera.
@@ -19,7 +56,7 @@ implements RenderGraph directly. Unsupported cameras, missing resources, unavail
 warn once and retain the tint fallback. Scene textures belong to RenderGraph and are not kept between frames. Camera callbacks are removed
 on body changes, disable, and unload. Open World and Helicopter hooks continue to see only the existing game cameras.
 
-The refraction mesh now matches the **160×80 water grid** instead of roughly 1,000 triangles. Water and impact gradients drive offsets;
+The refraction mesh now matches the **160×80 water grid** instead of roughly 1,000 triangles. Water, persistent relief and impact gradients drive offsets;
 there is no independent rotating sine wave. Wet samples outside the current view do not request a color copy. Normals/alpha are cached
 until a field revision changes (the simulation remains capped at 20 Hz); screen projection follows the actual rendered camera every frame.
 This is still mesh-based refraction, not a per-pixel normal-map shader. Its finer mesh adds CPU projection/vertex work that needs profiling.
@@ -65,11 +102,11 @@ Vanilla precipitation uses fixed normalized intensity 0.5. Open World's optional
 0.02 cutoff, altitude-dependent rain/snow split and prevailing wind. Initial overlapping tuning bands remain light/moderate/heavy for the
 three modes. These do not switch the dial automatically. No game assets are distributed.
 
-**Open World API debt remains:** its current source does not expose a public weather snapshot, so the isolated optional adapter still reads
-private fields. See [the proposed API contract](docs/public-weather-api.md). This change does not modify Open World or publish an upstream
-request. Any future API integration should use final local rain/snow intensities and wind independent of particle graphics budgets.
+Open World integration uses the public `HalfGripOpenWorld.WeatherView` v1 contract from the API test branch. See
+[the integration contract and checks](docs/public-weather-api.md). SlapPack does not recompute snow share, origin height, cutoff or weather
+intensity from private fields or particle budgets. An inactive public API falls back to the ordinary vanilla profile.
 
-## In-game validation for 0.8.0
+## In-game validation for 0.8.1
 
 - Compare the same rainy location with refraction off/on at width 320, then 640. Check frame-time consistency as well as FPS.
 - In vanilla and Open World, drive/turn/look around with saturated glass: the distorted world should move in the same frame; check orientation,
@@ -298,7 +335,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The 133 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The 137 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.

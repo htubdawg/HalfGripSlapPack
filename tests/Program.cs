@@ -239,6 +239,7 @@ internal static class Program
         WiperKnobTests.Run(Check);
         WiperIntermittentTests.Run(Check);
         WindshieldWeatherTests.Run(Check);
+        OptionalWeatherApiTests.Run(Check);
         Console.WriteLine(passed + " tests passed.");
     }
 

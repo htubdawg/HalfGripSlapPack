@@ -12,6 +12,7 @@ namespace HalfGripSlapPack
 	internal sealed class WindshieldRefractionSettings
 	{
 		internal readonly ConfigEntry<bool> Enabled;
+		internal readonly ConfigEntry<bool> DebugTint;
 		internal readonly ConfigEntry<int> Width;
 		internal readonly ConfigEntry<float> Strength;
 
@@ -19,6 +20,7 @@ namespace HalfGripSlapPack
 		internal WindshieldRefractionSettings(ConfigFile config)
 		{
 			Enabled = config.Bind("Wipers", "RefractionEnabled", true, "Same-frame distortion using the cockpit world camera's color. False retains the tint overlay. Restart after changing.");
+			DebugTint = config.Bind("Diagnostics", "RefractionDebugTint", false, "Tint the refraction draw magenta to verify GPU visibility. Leave false for normal play. Restart after changing.");
 			Width = config.Bind("Wipers", "RefractionCaptureWidth", 320, new ConfigDescription("Width of the point-filtered scene-color copy, refreshed each visible wet frame without another camera render. Restart after changing.", new AcceptableValueRange<int>(320, 1280)));
 			Strength = config.Bind("Wipers", "RefractionStrength", 0.008f, new ConfigDescription("Field-driven sampling offset as a fraction of the view. Restart after changing.", new AcceptableValueRange<float>(0.001f, 0.02f)));
 		}
@@ -35,7 +37,7 @@ namespace HalfGripSlapPack
 		private Mesh mesh;
 		private Vector3[] positions;
 		private PanePoint[] samples;
-		private Vector2[] uv, offsets;
+		private Vector2[] uv, offsets, pointOffsets;
 		private Color32[] colors;
 		private int[] wetIndices;
 		private int wetCount;
@@ -44,6 +46,12 @@ namespace HalfGripSlapPack
 		private Action<string> warning;
 		private bool initialized, subscribed, failed, ready;
 		private int wantedFrame = -1, drawnFrame = -1;
+		private long callbacks, queued, recorded, copied, submitted;
+		private float nextDiagnostic;
+		private int copyWidth, copyHeight, visibleSamples, shiftedSamples;
+		private float peakTexels, meanTexels;
+		private uint pointRevision = uint.MaxValue;
+		private int pointWidth, pointHeight;
 
 		internal bool Ready => ready && !failed && car && car.fpvCamera && car.fpvCamera.isActiveAndEnabled;
 		internal bool CanDraw => !failed && isActiveAndEnabled;
@@ -52,6 +60,7 @@ namespace HalfGripSlapPack
 		internal Material SurfaceMaterial => material;
 		internal Matrix4x4 ModelMatrix => car.transform.localToWorldMatrix;
 		internal int CopyWidth => settings.Width.Value;
+		internal bool DebugTint => settings.DebugTint.Value;
 
 		/// <summary>Requires a loaded transparent stock material, preserving its exact compiled keyword set.</summary>
 		private static Material StockMaterial(CarControllerNew car)
@@ -81,12 +90,14 @@ namespace HalfGripSlapPack
 		{
 			this.car = car; this.glass = glass; this.field = field; this.settings = settings; this.warning = warning;
 			Material stock = StockMaterial(car);
+			ModLog.Info("Windshield refraction material: " + stock.name + ", shader=" + stock.shader.name + ", keywords=" + string.Join(",", stock.shaderKeywords));
 			material = new Material(stock) { name = "SlapPack same-frame wet-glass refraction", renderQueue = 3000 }; owned.Add(material);
 			material.SetColor("_BaseColor", Color.white);
 			// Keep the stock blend factors paired with its straight/premultiplied alpha keywords.
 			material.SetFloat("_ZWrite", 0); material.SetFloat("_Cull", (float)CullMode.Off);
 			mesh = glass.RefractionMesh(field, out samples); owned.Add(mesh); mesh.MarkDynamic();
 			positions = mesh.vertices; uv = new Vector2[positions.Length]; offsets = new Vector2[positions.Length];
+			pointOffsets = new Vector2[positions.Length];
 			colors = new Color32[positions.Length]; wetIndices = new int[positions.Length]; mesh.colors32 = colors;
 			pass = new WindshieldRefractionPass(this);
 			initialized = true; Subscribe();
@@ -104,15 +115,18 @@ namespace HalfGripSlapPack
 		/// <summary>Queues the pass only for the player's current, visibly wet cockpit view.</summary>
 		private void BeginCamera(ScriptableRenderContext context, Camera camera)
 		{
-			if (failed || !car || camera != car.fpvCamera || !camera.isActiveAndEnabled || !glass.Source || !glass.Source.gameObject.activeInHierarchy) return;
+			if (!car || camera != car.fpvCamera || !camera.isActiveAndEnabled || !glass.Source || !glass.Source.gameObject.activeInHierarchy) return;
+			callbacks++;
+			if (failed) return;
 			try
 			{
 				UniversalAdditionalCameraData data = camera.GetComponent<UniversalAdditionalCameraData>();
 				if (!data || data.renderType != CameraRenderType.Base || camera.stereoEnabled)
 					throw new NotSupportedException("Refraction requires a non-stereo URP base world camera.");
 				if (!HasVisibleWater(camera.projectionMatrix * camera.worldToCameraMatrix * car.transform.localToWorldMatrix, camera.nearClipPlane))
-				{ ready = false; return; }
+				{ ready = false; visibleSamples = shiftedSamples = 0; peakTexels = meanTexels = 0; return; }
 				wantedFrame = Time.frameCount;
+				queued++;
 				data.scriptableRenderer.EnqueuePass(pass);
 			}
 			catch (Exception error) { Fail(error.Message); }
@@ -141,7 +155,8 @@ namespace HalfGripSlapPack
 				if (water <= 0.01f) continue;
 				int left = y * width + Math.Max(0, x - 1), right = y * width + Math.Min(width - 1, x + 1);
 				int down = Math.Max(0, y - 1) * width + x, up = Math.Min(height - 1, y + 1) * width + x;
-				PanePoint offset = WindshieldRefractionMath.Offset(water, field.Water[left] - field.Water[right], field.Water[down] - field.Water[up],
+				PanePoint offset = WindshieldRefractionMath.Offset(water, field.Water[left] - field.Water[right] + 2 * (field.Relief[left] - field.Relief[right]),
+					field.Water[down] - field.Water[up] + 2 * (field.Relief[down] - field.Relief[up]),
 					field.Impact[left] - field.Impact[right], field.Impact[down] - field.Impact[up], settings.Strength.Value);
 				offsets[i] = new Vector2(offset.X, offset.Y);
 				colors[i].a = (byte)(WindshieldWeatherOptics.Opacity(water, 0) * 255);
@@ -166,9 +181,21 @@ namespace HalfGripSlapPack
 		}
 
 		/// <summary>Updates projection every rendered frame and gates the copy on visible wet vertices.</summary>
-		internal bool UpdateSurface(Matrix4x4 projection, float near)
+		internal bool UpdateSurface(Matrix4x4 projection, float near, int imageWidth, int imageHeight)
 		{
 			UpdateFieldSamples(); bool visible = false;
+			if (pointRevision != revision || pointWidth != imageWidth || pointHeight != imageHeight)
+			{
+				for (int n = 0; n < wetCount; n++)
+				{
+					int i = wetIndices[n];
+					pointOffsets[i] = new Vector2(WindshieldRefractionMath.PointOffset(offsets[i].x, imageWidth), WindshieldRefractionMath.PointOffset(offsets[i].y, imageHeight));
+				}
+				pointRevision = revision; pointWidth = imageWidth; pointHeight = imageHeight;
+			}
+			bool diagnostics = ModLog.Verbose;
+			copyWidth = imageWidth; copyHeight = imageHeight;
+			visibleSamples = shiftedSamples = 0; peakTexels = meanTexels = 0;
 			for (int n = 0; n < wetCount; n++)
 			{
 				int i = wetIndices[n]; Vector3 p = positions[i];
@@ -176,16 +203,46 @@ namespace HalfGripSlapPack
 				float y = projection.m10 * p.x + projection.m11 * p.y + projection.m12 * p.z + projection.m13;
 				float w = projection.m30 * p.x + projection.m31 * p.y + projection.m32 * p.z + projection.m33;
 				if (w <= near) continue;
-				visible |= WindshieldRefractionMath.Visible(1, x, y, w, near);
+				bool inView = WindshieldRefractionMath.Visible(1, x, y, w, near); visible |= inView;
 				float halfInverseW = 0.5f / w;
-				uv[i] = new Vector2(Mathf.Clamp01(x * halfInverseW + 0.5f + offsets[i].x), Mathf.Clamp01(y * halfInverseW + 0.5f + offsets[i].y));
+				float baseU = x * halfInverseW + 0.5f, baseV = y * halfInverseW + 0.5f;
+				float du = pointOffsets[i].x, dv = pointOffsets[i].y;
+				uv[i] = new Vector2(Mathf.Clamp01(baseU + du), Mathf.Clamp01(baseV + dv));
+				if (inView && diagnostics)
+				{
+					visibleSamples++;
+					float shift = Mathf.Max(Mathf.Abs(uv[i].x - baseU) * imageWidth, Mathf.Abs(uv[i].y - baseV) * imageHeight);
+					if (shift > 0.5f) shiftedSamples++;
+					peakTexels = Mathf.Max(peakTexels, shift); meanTexels += shift;
+				}
 			}
 			if (visible) mesh.uv = uv;
+			if (visibleSamples > 0) meanTexels /= visibleSamples;
 			return visible;
 		}
 
 		/// <summary>Marks a successful current-frame draw; no captured scene is kept between frames.</summary>
-		internal void Drawn() { drawnFrame = Time.frameCount; ready = true; }
+		internal void Drawn() { drawnFrame = Time.frameCount; ready = true; submitted++; }
+
+		/// <summary>Counts graph recording separately from copy/draw command submission.</summary>
+		internal void Recorded() { recorded++; }
+
+		/// <summary>Counts the copy command after the built-in blitter successfully records it.</summary>
+		internal void Copied() { copied++; }
+
+		/// <summary>Reports cumulative command counts and last-frame offsets; this is not proof of GPU pixels.</summary>
+		private void LateUpdate()
+		{
+			if (!initialized || !ModLog.Verbose || Time.unscaledTime < nextDiagnostic) return;
+			nextDiagnostic = Time.unscaledTime + 5;
+			ModLog.Info("Windshield refraction diagnostics: camera=" + (TargetCamera ? TargetCamera.name : "none")
+				+ ", enabled=" + (TargetCamera && TargetCamera.isActiveAndEnabled) + ", ready=" + Ready + ", failed=" + failed
+				+ ", callbacks/queued/records/copies/draws=" + callbacks + "/" + queued + "/" + recorded + "/" + copied + "/" + submitted
+				+ ", lastDrawFrame=" + drawnFrame
+				+ ", copy=" + copyWidth + "x" + copyHeight + ", wetVerts/visibleVerts/shiftedVerts=" + wetCount + "/" + visibleSamples + "/" + shiftedSamples
+				+ ", offset texels mean/peak=" + meanTexels.ToString("0.00") + "/" + peakTexels.ToString("0.00")
+				+ ", debugTint=" + DebugTint + " (counts are submitted commands, not measured GPU coverage)");
+		}
 
 		/// <summary>Handles a view changed by another camera hook without treating a culled surface as an error.</summary>
 		internal void SkipFrame() { wantedFrame = -1; ready = false; }

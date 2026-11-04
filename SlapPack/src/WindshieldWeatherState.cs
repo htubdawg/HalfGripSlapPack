@@ -12,11 +12,13 @@ namespace HalfGripSlapPack
 		internal const int Width = 160, Height = 80;
 		internal readonly float[] Water = new float[Width * Height], Snow = new float[Width * Height];
 		internal readonly float[] Impact = new float[Width * Height];
+		/// <summary>Persistent droplet relief, independent of the clamped water quantity.</summary>
+		internal readonly float[] Relief = new float[Width * Height];
 		internal readonly bool[] Inside = new bool[Width * Height];
 		internal readonly float MinX, MinY, SpanX, SpanY;
 		private readonly float[][] angles = { new float[Width * Height], new float[Width * Height] };
 		private readonly float[][] margins = { new float[Width * Height], new float[Width * Height] };
-		private readonly float[] waterNext = new float[Width * Height], snowNext = new float[Width * Height];
+		private readonly float[] waterNext = new float[Width * Height], snowNext = new float[Width * Height], reliefNext = new float[Width * Height];
 		private readonly float[] deposition = new float[Width * Height];
 		private readonly WiperGeometry[] blades;
 		private readonly Random random = new Random(4093);
@@ -81,6 +83,7 @@ namespace HalfGripSlapPack
 			// speed-dependent dryer; runoff already accounts for air movement.
 			float waterKeep = (float)Math.Exp(-dt * 0.012);
 			float snowKeep = (float)Math.Exp(-dt * 0.003);
+			float reliefKeep = (float)Math.Exp(-dt * 0.12);
 			var waterDrift = new Drift(-dx, -dy);
 			var snowDrift = new Drift(-dx * 0.07f, -dy * 0.07f);
 			float rainFilm = rain * exposure * dt * 0.08f;
@@ -92,9 +95,11 @@ namespace HalfGripSlapPack
 					if (!Inside[k]) continue;
 					waterNext[k] = Math.Min(1, Sample(Water, x, y, waterDrift) * waterKeep + rainFilm * deposition[k]);
 					snowNext[k] = Math.Min(1, Sample(Snow, x, y, snowDrift) * snowKeep + snowFilm * deposition[k]);
+					reliefNext[k] = waterNext[k] > 0.001f ? Sample(Relief, x, y, waterDrift) * reliefKeep : 0;
 					Impact[k] = Math.Max(0, Impact[k] - dt * 4);
 				}
 			Array.Copy(waterNext, Water, Water.Length); Array.Copy(snowNext, Snow, Snow.Length);
+			Array.Copy(reliefNext, Relief, Relief.Length);
 			rainDrops += rain * exposure * 85 * dt;
 			snowDrops += snow * exposure * 55 * dt;
 			while (rainDrops >= 1) { rainDrops--; Splat(random.Next(Width), random.Next(Height), false); }
@@ -150,6 +155,7 @@ namespace HalfGripSlapPack
 					if (r >= 1) continue;
 					float[] field = snow ? Snow : Water;
 					field[k] = Math.Min(1, field[k] + (1 - r) * (snow ? 0.5f : 0.7f));
+					if (!snow) Relief[k] = Math.Min(2, Relief[k] + (1 - r) * 0.8f);
 					Impact[k] = 1;
 				}
 		}
@@ -164,7 +170,7 @@ namespace HalfGripSlapPack
 				for (int i = 0; i < 2; i++)
 					if (angles[i][k] >= lo - margins[i][k] && angles[i][k] <= hi + margins[i][k])
 					{
-						Water[k] = 0; Snow[k] = 0; Impact[k] = 0; break;
+						Water[k] = 0; Snow[k] = 0; Impact[k] = 0; Relief[k] = 0; break;
 					}
 			}
 			unchecked { Revision++; }

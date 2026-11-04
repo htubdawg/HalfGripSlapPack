@@ -10,7 +10,7 @@ namespace HalfGripSlapPack
 
         public override void Load(ModContext ctx)
         {
-            ModLog.Initialize(ctx.Config);
+            ModLog.Initialize(ctx.Config, ctx.Log);
             ctx.PatchAll();
             host = new GameObject("SlapPack.Mirrors");
             Object.DontDestroyOnLoad(host);

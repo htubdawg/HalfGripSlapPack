@@ -45,7 +45,7 @@ internal static class WindshieldWeatherTests
 		check("Dry weather leaves the windshield clear", () =>
 		{
 			var field = Simulate(WiperSpeed.Off, 0, 0, 50, duration: 1);
-			Assert(field.Water.Sum() == 0 && field.Snow.Sum() == 0 && field.Impact.Sum() == 0, "Dry weather deposited precipitation.");
+			Assert(field.Water.Sum() == 0 && field.Snow.Sum() == 0 && field.Impact.Sum() == 0 && field.Relief.Sum() == 0, "Dry weather deposited precipitation.");
 		});
 		check("Rain and snow impacts persist as separate buildup", () =>
 		{
@@ -60,7 +60,7 @@ internal static class WindshieldWeatherTests
 		check("Parked blades do not wipe; rubber clears both layers only inside its swept area", () =>
 		{
 			var field = new WindshieldWeatherState(Opening);
-			for (int i = 0; i < field.Water.Length; i++) if (field.Inside[i]) { field.Water[i] = 1; field.Snow[i] = 1; }
+			for (int i = 0; i < field.Water.Length; i++) if (field.Inside[i]) { field.Water[i] = 1; field.Snow[i] = 1; field.Relief[i] = 1; }
 			float before = field.Water.Sum(); field.Wipe(0, 0);
 			Assert(before == field.Water.Sum(), "Parked blades cleared glass.");
 			field.Wipe(0, 0.5f);
@@ -68,7 +68,7 @@ internal static class WindshieldWeatherTests
 			Assert(half < before && half > before * 0.5f, "Partial stroke over-cleared or did not clear.");
 			field.Wipe(0.5f, 1);
 			Assert(field.Water.Sum() < half && field.Water.Sum() > 0, "Full stroke must leave unswept edges.");
-			Assert(field.Water.Sum() == field.Snow.Sum(), "Slush was not cleared with rain.");
+			Assert(field.Water.Sum() == field.Snow.Sum() && field.Water.Sum() == field.Relief.Sum(), "Water, slush or relief survived the blade mask.");
 		});
 		check("Intensity and vehicle incidence increase deposition", () =>
 		{
@@ -84,11 +84,12 @@ internal static class WindshieldWeatherTests
 			{
 				var field = new WindshieldWeatherState(Opening);
 				int x = 80, y = 40, center = y * WindshieldWeatherState.Width + x;
-				field.Water[center] = field.Snow[center] = 1;
+				field.Water[center] = field.Snow[center] = field.Relief[center] = 1;
 				float flow = direction * field.SpanX / WindshieldWeatherState.Width;
 				field.Deposit(1, 0, 0, 0, flow, 0, false);
 				Assert(field.Water[center + (int)direction] > 0.9f, "Water moved against airflow.");
 				Assert(field.Snow[center] > 0.9f, "Slush moved as quickly as water.");
+				Assert(field.Relief[center + (int)direction] > 0.8f, "Relief did not follow water runoff.");
 			}
 		});
 		check("Continuous mode keeps vanilla precipitation clear and fast mode handles heavier rain", () =>
@@ -149,8 +150,8 @@ internal static class WindshieldWeatherTests
 			var field = Simulate(WiperSpeed.Off, 1, 1, 100, duration: 3);
 			for (int i = 0; i < field.Water.Length; i++)
 			{
-				Assert(field.Water[i] >= 0 && field.Water[i] <= 1 && field.Snow[i] >= 0 && field.Snow[i] <= 1, "Invalid field value.");
-				Assert(field.Inside[i] || field.Water[i] + field.Snow[i] == 0, "Precipitation outside glass.");
+				Assert(field.Water[i] >= 0 && field.Water[i] <= 1 && field.Snow[i] >= 0 && field.Snow[i] <= 1 && field.Relief[i] >= 0 && field.Relief[i] <= 2, "Invalid field value.");
+				Assert(field.Inside[i] || field.Water[i] + field.Snow[i] + field.Relief[i] == 0, "Precipitation outside glass.");
 			}
 		});
 		check("Weather field updates are bounded independently of rendering frame rate", () =>
@@ -275,6 +276,34 @@ internal static class WindshieldWeatherTests
 			Assert(field.Revision != initial, "Wiping did not update optics.");
 			initial = field.Revision; field.Deposit(0, 1, 1, 0, 0, 0, false); field.Wipe(0, 0);
 			Assert(field.Revision == initial, "No-op step invalidated optics.");
+		});
+		check("Droplet relief survives water saturation and the short impact flash", () =>
+		{
+			var field = new WindshieldWeatherState(Opening);
+			for (int k = 0; k < field.Water.Length; k++) if (field.Inside[k]) field.Water[k] = 1;
+			for (int i = 0; i < 10; i++) field.Deposit(0.05f, 1, 0, 0, 0, 0, false);
+			field.Deposit(0.4f, 0, 0, 0, 0, 0, false);
+			Assert(field.Impact.Sum() == 0 && field.Relief.Sum() > 0, "Relief disappeared with the flash.");
+			int shifted = 0;
+			for (int y = 1; y < WindshieldWeatherState.Height - 1; y++)
+				for (int x = 1; x < WindshieldWeatherState.Width - 1; x++)
+				{
+					int k = y * WindshieldWeatherState.Width + x;
+					if (!field.Inside[k]) continue;
+					var offset = WindshieldRefractionMath.Offset(field.Water[k], 2 * (field.Relief[k - 1] - field.Relief[k + 1]),
+						2 * (field.Relief[k - WindshieldWeatherState.Width] - field.Relief[k + WindshieldWeatherState.Width]), 0, 0, 0.008f);
+					if (WindshieldRefractionMath.PointOffset(offset.X, 320) != 0 || WindshieldRefractionMath.PointOffset(offset.Y, 180) != 0) shifted++;
+				}
+			Assert(shifted > 50, "Saturated water had no point-visible droplet detail: " + shifted);
+			Console.WriteLine("Saturated glass with flash faded: " + shifted + " field samples retain whole-texel distortion.");
+		});
+		check("Point filtering keeps meaningful offsets and rejects tiny noise", () =>
+		{
+			float positive = WindshieldRefractionMath.PointOffset(0.0006f, 320);
+			float negative = WindshieldRefractionMath.PointOffset(-0.0006f, 320);
+			Assert(Math.Abs(positive * 320 - 1) < 0.0001f && negative == -positive, "Subtexel displacement was rounded away or reversed.");
+			Assert(WindshieldRefractionMath.PointOffset(0, 320) == 0 && WindshieldRefractionMath.PointOffset(0.00001f, 320) == 0, "Numerical noise created displacement.");
+			Assert(Math.Abs(WindshieldRefractionMath.PointOffset(1, 180)) <= 0.02f, "Quantization exceeded its bound.");
 		});
 	}
 }
