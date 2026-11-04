@@ -22,6 +22,9 @@ namespace HalfGripSlapPack
 		private readonly Texture2D texture;
 		private readonly Color32[] pixels = new Color32[WindowWeatherState.Width * WindowWeatherState.Height];
 		private float lastOpen = -1;
+		private bool warnedLayer;
+		internal int Layer => renderer.gameObject.layer;
+		internal bool Visible => renderer.enabled && renderer.gameObject.activeInHierarchy;
 
 		private WindowWeatherSurface(Transform car, MeshRenderer source, Vector3[] points, int[] indices, bool rear, List<Object> owned, int seed)
 		{
@@ -136,8 +139,8 @@ namespace HalfGripSlapPack
 			// cockpit view. The owned precipitation must remain visible there,
 			// just like the windshield overlay; only body activation gates it.
 			renderer.enabled = Source.gameObject.activeInHierarchy && open < 1;
-			Vector3 flow = car.transform.InverseTransformDirection(Vector3.down) * (Field.Rear ? 0.025f : 0.10f)
-				+ relative * (Field.Rear ? 0.00035f : 0.0045f);
+			Vector3 flow = car.transform.InverseTransformDirection(Vector3.down) * (Field.Rear ? 0.060f : 0.10f)
+				+ relative * (Field.Rear ? 0.0008f : 0.0045f);
 			Field.Step(dt, weather.Rain, weather.Snow, Mathf.Max(0, -Vector3.Dot(relative, Normal)), Vector3.Dot(flow, Right), Vector3.Dot(flow, Up), open);
 			if (!renderer.enabled) return;
 			for (int k = 0; k < pixels.Length; k++)
@@ -148,6 +151,52 @@ namespace HalfGripSlapPack
 					(byte)(Mathf.Lerp(shine * 0.9f, 0.93f, white) * 255), (byte)(Mathf.Lerp(shine, 0.96f, white) * 255), (byte)(Field.Opacity(k) * 255));
 			}
 			texture.SetPixels32(pixels); texture.Apply(false, false);
+		}
+
+		/// <summary>Keeps owned overlays in both camera masks without editing the source layer or cameras.</summary>
+		internal void IncludeMirror(Camera cockpit, Camera mirror, Action<string> warning)
+		{
+			if (!Source || !cockpit || !mirror) return;
+			int layer = WindowWeatherLayer.Select(Source.gameObject.layer, cockpit.cullingMask, mirror.cullingMask);
+			if (layer >= 0) renderer.gameObject.layer = layer;
+			else if (!warnedLayer)
+			{
+				warnedLayer = true;
+				warning("Window weather: cockpit and rear-view cameras share no render layers; mirror weather cannot be included without changing camera masks.");
+			}
+		}
+
+		/// <summary>Counts wet field samples projected into the real mirror, including clipping and near/far planes.</summary>
+		internal int VisibleWetSamples(Transform car, Camera camera)
+		{
+			int count = 0;
+			for (int y = 0; y < WindowWeatherState.Height; y++)
+				for (int x = 0; x < WindowWeatherState.Width; x++)
+				{
+					int k = y * WindowWeatherState.Width + x;
+					if (!Field.Inside[k] || Field.Opacity(k) < 0.02f) continue;
+					PanePoint p = Field.Point(x, y);
+					if (!Covers(p)) continue;
+					p.Y -= lastOpen * Field.SpanY;
+					if (!Field.Contains(p)) continue;
+					Vector3 v = camera.WorldToViewportPoint(car.TransformPoint(origin + Right * p.X + Up * p.Y + Normal * 0.006f));
+					if (v.z >= camera.nearClipPlane && v.z <= camera.farClipPlane && v.x >= 0 && v.x <= 1 && v.y >= 0 && v.y <= 1) count++;
+				}
+			return count;
+		}
+
+		/// <summary>Excludes holes and missing corners from mirror diagnostics using the source triangle footprint.</summary>
+		private bool Covers(PanePoint p)
+		{
+			for (int i = 0; i < Indices.Length; i += 3)
+			{
+				PanePoint a = projected[Indices[i]], b = projected[Indices[i + 1]], c = projected[Indices[i + 2]];
+				float ab = (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+				float bc = (c.X - b.X) * (p.Y - b.Y) - (c.Y - b.Y) * (p.X - b.X);
+				float ca = (a.X - c.X) * (p.Y - c.Y) - (a.Y - c.Y) * (p.X - c.X);
+				if ((ab >= -0.000001f && bc >= -0.000001f && ca >= -0.000001f) || (ab <= 0.000001f && bc <= 0.000001f && ca <= 0.000001f)) return true;
+			}
+			return false;
 		}
 	}
 }

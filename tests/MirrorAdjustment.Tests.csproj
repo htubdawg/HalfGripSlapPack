@@ -15,6 +15,7 @@
     <Compile Include="../SlapPack/src/MeshBufferData.cs" Link="MeshBufferData.cs" />
     <Compile Include="../SlapPack/src/WindowPolygon.cs" Link="WindowPolygon.cs" />
     <Compile Include="../SlapPack/src/WindowWeatherState.cs" Link="WindowWeatherState.cs" />
+    <Compile Include="../SlapPack/src/WindowWeatherLayer.cs" Link="WindowWeatherLayer.cs" />
     <Compile Include="../SlapPack/src/TurnSignalState.cs" Link="TurnSignalState.cs" />
     <Compile Include="../SlapPack/src/SignalRelay.cs" Link="SignalRelay.cs" />
     <Compile Include="../SlapPack/src/SignalStalkLayout.cs" Link="SignalStalkLayout.cs" />

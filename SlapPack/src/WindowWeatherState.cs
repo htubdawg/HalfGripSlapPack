@@ -14,6 +14,7 @@ namespace HalfGripSlapPack
 		internal readonly float MinX, MinY, SpanX, SpanY;
 		internal readonly bool Rear;
 		private readonly float[] waterNext = new float[Width * Height], snowNext = new float[Width * Height], edge = new float[Width * Height];
+		private readonly float[] deposition = new float[Width * Height];
 		private readonly IReadOnlyList<PanePoint> opening;
 		private readonly Random random;
 		private double rainDrops, snowDrops;
@@ -29,7 +30,7 @@ namespace HalfGripSlapPack
 		internal WindowWeatherState(IReadOnlyList<PanePoint> opening, bool rear, int seed)
 		{
 			this.opening = opening; Rear = rear; random = new Random(seed);
-			rivulets = new Rivulet[rear ? 8 : 12];
+			rivulets = new Rivulet[14];
 			MinX = opening.Min(p => p.X); MinY = opening.Min(p => p.Y);
 			SpanX = opening.Max(p => p.X) - MinX; SpanY = opening.Max(p => p.Y) - MinY;
 			for (int y = 0; y < Height; y++)
@@ -37,6 +38,7 @@ namespace HalfGripSlapPack
 				{
 					int k = y * Width + x; PanePoint p = Point(x, y);
 					Inside[k] = Contains(p);
+					deposition[k] = 0.65f + 0.35f * (float)(Math.Sin(x * 0.23f) * Math.Cos(y * 0.31f));
 					float distance = float.MaxValue;
 					for (int i = 0; i < opening.Count; i++)
 					{
@@ -75,20 +77,23 @@ namespace HalfGripSlapPack
 			float limit = Rear ? 0.018f : 0.055f;
 			if (speed > limit) { flowX *= limit / speed; flowY *= limit / speed; }
 			float dx = flowX * dt * Width / SpanX, dy = flowY * dt * Height / SpanY;
-			float waterKeep = (float)Math.Exp(-dt * (Rear ? 0.28f : 0.4f));
+			float waterKeep = (float)Math.Exp(-dt * (Rear ? 0.35f : 0.4f));
 			float snowKeep = (float)Math.Exp(-dt * 0.10f);
+			float exposure = (Rear ? 0.80f : 0.85f) + Math.Min(1.2f, Math.Max(0, Finite(incidence)) / 35);
 			for (int y = 0; y < Height; y++)
 				for (int x = 0; x < Width; x++)
 				{
 					int k = y * Width + x;
-					waterNext[k] = Inside[k] ? Sample(Water, x - dx, y - dy) * waterKeep : 0;
+					// A shallow, irregular wet layer ties the beads together like the
+					// windshield's water field. Drying bounds it; hidden glass stays dry.
+					float film = Exposed(x, y, openFraction) ? rain * exposure * dt * 0.035f * deposition[k] : 0;
+					waterNext[k] = Inside[k] ? Math.Min(0.85f, Sample(Water, x - dx, y - dy) * waterKeep + film) : 0;
 					snowNext[k] = Inside[k] ? Sample(Snow, x - dx * 0.04f, y - dy * 0.04f) * snowKeep : 0;
 				}
 			Array.Copy(waterNext, Water, Water.Length); Array.Copy(snowNext, Snow, Snow.Length);
 			// Rear glass is sheltered from forward travel. Reverse travel/crosswind
 			// still increases normal exposure, without making a permanent opaque film.
-			float exposure = (Rear ? 0.45f : 0.65f) + Math.Min(1.2f, Math.Max(0, Finite(incidence)) / 35);
-			rainDrops += rain * exposure * (Rear ? 9 : 18) * dt;
+			rainDrops += rain * exposure * (Rear ? 20 : 24) * dt;
 			snowDrops += snow * exposure * 7 * dt;
 			while (rainDrops >= 1) { rainDrops--; Deposit(false, openFraction); }
 			while (snowDrops >= 1) { snowDrops--; Deposit(true, openFraction); }
@@ -99,10 +104,10 @@ namespace HalfGripSlapPack
 		/// <summary>Preserves narrow runoff paths instead of diffusing moving beads into a faint film.</summary>
 		private void AdvanceRivulets(float dt, float flowX, float flowY, float openFraction)
 		{
-			float keep = (float)Math.Exp(-dt * (Rear ? 1.3f : 0.85f));
+			float keep = (float)Math.Exp(-dt * (Rear ? 0.95f : 0.85f));
 			for (int k = 0; k < Trail.Length; k++) Trail[k] *= keep;
 			double speed = Math.Sqrt((double)flowX * flowX + (double)flowY * flowY);
-			float limit = Rear ? 0.04f : 0.20f;
+			float limit = Rear ? 0.09f : 0.20f;
 			if (speed > limit) { float scale = (float)(limit / speed); flowX *= scale; flowY *= scale; }
 			for (int i = 0; i < rivulets.Length; i++)
 			{
@@ -131,7 +136,7 @@ namespace HalfGripSlapPack
 				{
 					if (!Exposed(x, y, openFraction)) continue;
 					float dx = x - cx, dy = y - cy;
-					float value = Math.Max(0, 1 - (float)Math.Sqrt(dx * dx + dy * dy) / 1.25f);
+					float value = Math.Max(0, 1 - (float)Math.Sqrt(dx * dx + dy * dy) / (Rear ? 1.8f : 1.45f));
 					int k = y * Width + x;
 					Trail[k] = Math.Max(Trail[k], value);
 				}
@@ -157,9 +162,9 @@ namespace HalfGripSlapPack
 					int k = y * Width + x;
 					float weight = x == cx && y == cy ? 1 : 0.18f;
 					if (snow) Snow[k] = Math.Min(0.4f, Snow[k] + weight * (0.08f + edge[k] * 0.25f));
-					else Water[k] = Math.Min(0.65f, Water[k] + weight * 0.55f);
+					else Water[k] = Math.Min(0.85f, Water[k] + weight * 0.70f);
 				}
-			if (!snow && random.NextDouble() < (Rear ? 0.35 : 0.65))
+			if (!snow && random.NextDouble() < (Rear ? 0.70 : 0.75))
 			{
 				rivulets[nextRivulet] = new Rivulet { X = cx, Y = cy, Life = 2 + (float)random.NextDouble() * 2,
 					Mobility = 0.75f + (float)random.NextDouble() * 0.5f };
@@ -175,7 +180,7 @@ namespace HalfGripSlapPack
 		}
 
 		/// <summary>Hard local opacity ceiling remains safe even after indefinitely long storms.</summary>
-		internal float Opacity(int k) => Math.Min(Rear ? 0.24f : 0.32f, Water[k] * 0.32f + Trail[k] * 0.36f + Snow[k] * 0.42f);
+		internal float Opacity(int k) => Math.Min(Rear ? 0.36f : 0.40f, Water[k] * 0.40f + Trail[k] * 0.46f + Snow[k] * 0.42f);
 
 		/// <summary>Bright and dark water rims remain legible against both dark cabins and bright scenery.</summary>
 		internal float Shine(int k)

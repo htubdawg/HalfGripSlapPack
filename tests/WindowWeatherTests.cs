@@ -32,10 +32,10 @@ internal static class WindowWeatherTests
 				{
 					f.Step(0.05f, 1, 1, 100, 0, 0, 0);
 					for (int k = 0; k < f.Water.Length; k++)
-						Require(f.Opacity(k) <= (rear ? 0.24f : 0.32f), "Unbounded storm opacity");
+						Require(f.Opacity(k) <= (rear ? 0.36f : 0.40f), "Unbounded storm opacity");
 				}
 				float average = Enumerable.Range(0, f.Water.Length).Average(k => f.Opacity(k));
-				Require(average < 0.06f, "Full window film formed: " + average);
+				Require(average < 0.14f, "Full window film formed: " + average);
 			}
 		});
 		check("Rain and snow clear naturally without washers or blades", () =>
@@ -109,8 +109,8 @@ internal static class WindowWeatherTests
 			float mean = Enumerable.Range(0, f.Water.Length).Average(k => f.Opacity(k));
 			Console.WriteLine("Vanilla side rain: longest trail=" + longest + " texels, visible fraction=" + visible + ", mean opacity=" + mean);
 			Require(longest >= 6, "Rain remained isolated dots instead of connected streaks");
-			Require(visible > 0.025f && visible < 0.25f, "Wet features are too faint or cover too much glass");
-			Require(mean < 0.06f, "Streaks formed a blanket film");
+			Require(visible > 0.06f && visible < 0.45f, "Wet features are too faint or cover too much glass");
+			Require(mean < 0.14f, "Streaks formed a blanket film");
 		});
 		check("Ten-minute moving downpour keeps streak opacity and coverage bounded", () =>
 		{
@@ -122,8 +122,8 @@ internal static class WindowWeatherTests
 					f.Step(0.05f, 1, 0, 100, 0.15f, -0.10f, 0);
 					if (i % 200 != 0) continue;
 					float mean = Enumerable.Range(0, f.Water.Length).Average(k => f.Opacity(k));
-					Require(mean < 0.06f, "Prolonged moving rain obscures the window: rear=" + rear + ", mean=" + mean);
-					Require(Enumerable.Range(0, f.Water.Length).All(k => f.Opacity(k) <= (rear ? 0.24f : 0.32f)), "Streak exceeded local opacity cap");
+					Require(mean < 0.14f, "Prolonged moving rain obscures the window: rear=" + rear + ", mean=" + mean);
+					Require(Enumerable.Range(0, f.Water.Length).All(k => f.Opacity(k) <= (rear ? 0.36f : 0.40f)), "Streak exceeded local opacity cap");
 				}
 			}
 		});
@@ -159,8 +159,36 @@ internal static class WindowWeatherTests
 			var side = new WindowWeatherState(Opening, false, 75);
 			var rear = new WindowWeatherState(Opening, true, 75);
 			RunFor(side, 400, 0.5f, 0, 0, 0, -0.10f);
-			RunFor(rear, 400, 0.5f, 0, 0, 0, -0.025f);
+			RunFor(rear, 400, 0.5f, 0, 0, 0, -0.060f);
 			Require(LongestStreak(side) > LongestStreak(rear), "Rear behaves like a side window");
+		});
+
+		check("Rear vanilla rain has sustained visible detail and connected runoff", () =>
+		{
+			var f = new WindowWeatherState(Opening, true, 81);
+			RunFor(f, 400, 0.5f, 0, 0, 0, -0.060f);
+			float visible = Enumerable.Range(0, f.Water.Length).Count(k => f.Opacity(k) > 0.08f) / (float)f.Water.Length;
+			float mean = Enumerable.Range(0, f.Water.Length).Average(k => f.Opacity(k));
+			Console.WriteLine("Vanilla rear rain: longest trail=" + LongestStreak(f) + " texels, visible fraction=" + visible + ", mean opacity=" + mean);
+			Require(LongestStreak(f) >= 6 && visible > 0.06f, "Rear rain faded into isolated faint beads");
+			Require(mean < 0.10f && visible < 0.45f, "Rear weather obscures the view");
+		});
+		check("Weather layer selection preserves a layer already visible in cockpit and mirror", () =>
+		{
+			int cockpit = 1 | (1 << 8), mirror = 1 | (1 << 9);
+			Require(WindowWeatherLayer.Select(0, cockpit, mirror) == 0, "Source layer changed unnecessarily");
+		});
+		check("Weather excluded by the mirror uses a common layer without changing camera masks", () =>
+		{
+			int cockpit = 1 | (1 << 8), mirror = 1 | (1 << 9);
+			int layer = WindowWeatherLayer.Select(8, cockpit, mirror);
+			Require(layer == 0 && (cockpit & (1 << layer)) != 0 && (mirror & (1 << layer)) != 0, "Weather remains excluded from mirror");
+			Require(cockpit == (1 | (1 << 8)) && mirror == (1 | (1 << 9)), "Camera masks changed");
+		});
+		check("Weather layer selection supports the sign bit and reports incompatible masks", () =>
+		{
+			Require(WindowWeatherLayer.Select(0, int.MinValue, int.MinValue) == 31, "Layer 31 excluded");
+			Require(WindowWeatherLayer.Select(0, 1, 2) == -1, "No common layer incorrectly reported visible");
 		});
 
 		check("Moving weather triangle clips at sloping aperture with preserved glass coordinates", () =>

@@ -1,3 +1,21 @@
+# Test update 0.8.6 — stronger rear weather and mirror visibility checks
+
+The user reports improved side streaks but weak rear activity and requests a look closer to the front windshield, including visibility in the mirror. This update adds a shallow, spatially varying rain layer with continuous natural drainage/drying, stronger individual beads and broader trails. The rear is no longer reduced at every stage: impact rate, head probability, active-head capacity, trail width and flow are increased. Both surfaces retain bounded water and natural clearing without wipers; rear tangential flow remains slower than side flow.
+
+- At most 14 water heads per patch. Side/rear rain rates are 24/20 times precipitation exposure; rear flow uses 0.060 gravity projection and 0.0008 relative-air coupling, compared with 0.10/0.0045 on the sides.
+- Combined local opacity caps are 40% side / 36% rear. Wet detail is stronger, while the shallow base layer remains bounded by drying. Snow retains its separate light, edge-biased layer. No scene-copy/refraction pass is added to these surfaces; the windshield optics remain as before.
+- Existing point filtering, moving-window clipping and native-renderer-independent cockpit visibility remain. Manifest, README and development project version are all 0.8.6. AGENTS.md / CLAUDE.md were read before changes.
+
+Mirror verification: inspected the existing RearViewCamera path and stock scene reference. Overlays are two-sided ordinary transparent world geometry, not a cockpit-only pass. They can render into the mirror's existing target. Source activation is used instead of the native glass renderer flag. Owned overlays now choose a layer included by both actual camera masks, rechecking immediately before URP camera culling, without changing either camera or source layer. A missing common layer emits a warning. Tests verify the common-layer fallback and incompatible masks.
+
+With Diagnostics.VerboseLogging=true, five-second mirror-render callbacks report active rear patches, layer-included patches, wet source-triangle samples projected inside the actual mirror frustum (including lowered-glass clipping and near/far planes), and render-target dimensions. These are CPU eligibility/projection checks; they do not prove GPU fragments survived depth occlusion or appeared in the final mirror image. No live Unity game runtime is available here, so final pixel-level mirror visibility remains a playtest requirement.
+
+Validation: compile check passes with zero warnings/errors; all 159 model/control tests pass. Vanilla side sample: longest connected trail 26 texels, 17.7% of samples above 8% opacity, mean opacity 4.8%. Vanilla rear sample: longest trail 12 texels, 12.5% above 8%, mean opacity 3.8%. Ten-minute stationary/moving storm tests enforce local caps and mean opacity below 14%. These are deterministic CPU field measurements, not in-game screenshots or performance measurements.
+
+Runtime checks: install 0.8.6 on test/side-rear-weather; inspect rear weather directly and in the mirror in stationary rain and at speed, both stock bodies, mirror adjustment/Smart Mirror and IncludeCarInterior on/off, camera transitions, snow and drying. Check diagnostic wet samples > 0 when the mirror aims through wet rear glass; visually confirm depth sorting/occlusion and rendering cost. Main remains unchanged.
+
+---
+
 # Test update 0.8.5 — visible runoff streaks
 
 The user reported that 0.8.4 droplets were barely visible. Bilinear water transport spread isolated small splats into faint patches; it did not retain a distinct runoff path. 0.8.5 adds bounded moving water heads that rasterize continuous narrow trails onto the glass. Those trails fade in place rather than diffusing with the bead field.
