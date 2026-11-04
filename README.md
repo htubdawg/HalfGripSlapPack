@@ -1,127 +1,88 @@
 # HalfGripSlapPack
 A collection of new things to interact with in your car.
 
-Features: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers with rain/slush interaction.
+Features: adjustable mirror, working window cranks, turn signals, and manual windshield wipers with rain/slush interaction.
 
-## Experimental camera refraction — 0.7.1
+## Same-frame windshield refraction — 0.8.0
 
-Version 0.7.1 allows `RefractionCaptureHz` from **5 to 144 Hz** in both the config and capture scheduler. The default remains 15.
-For example, set it to 60 or 120 and restart. Actual captures are also limited by the game's frame rate; no catch-up bursts are queued.
+The weather experiment stays on **`test/windshield-weather`**, based on `test/windshield-wipers`. No branches have been merged.
+Version 0.8.0 replaces the auxiliary-camera experiment with a same-frame scene-color copy from the existing cockpit world camera.
 
-On `test/windshield-weather` only; no merge into the wiper-control branch. Version 0.7.0 prototypes a **separate low-resolution camera**
-for water distortion. It defaults to **640 pixels wide** (640×360 at 16:9) and **at most 15 captures/second**, configurable below. The camera
-copies the cockpit world camera's current pose, projection, culling mask and clipping distances. It renders once per scheduled capture using
-URP's standalone camera request, without a CPU image readback. Its capture remains on the GPU.
+A `RenderPipelineManager.beginCameraRendering` handler queues a URP `ScriptableRenderPass` for `car.fpvCamera` only. Its
+`RecordRenderGraph` implementation runs after opaque objects and the sky. URP's built-in point blitter downsamples that color to a small
+transient texture, then a dependent pass draws the water mesh into the current camera color with read-only camera depth. Both passes
+declare their texture dependencies. The normal transparent pass follows, so rain particles are drawn once. The cockpit/HUD retain their
+normal rendering. No camera objects, render requests, original-camera changes, or renderer-index reflection remain.
 
-The existing URP particle unlit shader draws that image through a tessellated front-glass mesh. Wetness controls vertex alpha, while the
-water gradient and animated ripples offset the sampling UVs. Ripples remain at saturation; wiping removes both the mask and distortion.
-Rain's colored overlay is greatly reduced while refraction is available; snow/slush retains its opacity. The method approximates refraction
-with a mesh and avoids depending on undocumented inputs of the game's speed-line shader. Native speed-line shader reuse is not implemented.
+The supplied 0.419 URP assembly executes RenderGraph and its compatibility-mode `Execute` methods are compiled stubs. This feature therefore
+implements RenderGraph directly. Unsupported cameras, missing resources, unavailable stock materials, or a pass that does not execute
+warn once and retain the tint fallback. Scene textures belong to RenderGraph and are not kept between frames. Camera callbacks are removed
+on body changes, disable, and unload. Open World and Helicopter hooks continue to see only the existing game cameras.
 
-The helper camera is disabled between explicit captures and sleeps when the windshield is dry, while paused, or outside the cockpit.
-The water overlay, refraction surface, own blades/washer jets and own speed-line renderer are temporarily hidden only during capture to avoid
-feedback and duplicate effects; their visibility is restored in a `finally` block. The original cameras and their settings are unchanged.
-New textures/camera/mesh/materials are removed with the weather surface on body changes or mod unload. Unsupported rendering requests or
-allocation failures warn once and restore the tint effect.
+The refraction mesh now matches the **160×80 water grid** instead of roughly 1,000 triangles. Water and impact gradients drive offsets;
+there is no independent rotating sine wave. Wet samples outside the current view do not request a color copy. Normals/alpha are cached
+until a field revision changes (the simulation remains capped at 20 Hz); screen projection follows the actual rendered camera every frame.
+This is still mesh-based refraction, not a per-pixel normal-map shader. Its finer mesh adds CPU projection/vertex work that needs profiling.
 
-Open World continues to provide precipitation as before. The capture inherits the main camera's current far clip each time, including
-Open World's extended horizon. Its streamed/far terrain are ordinary world renderers; no Open World camera registration or patch is added.
-The capture remains untagged so it does not replace `Camera.main`. These are source-level compatibility checks; live Open World rendering
-still requires the playtest below.
+The copy and water overlay use **point filtering**. Texture orientation follows RenderGraph's source/destination origin metadata and is
+handled automatically; there is no player-facing flip option. Water retains at least **50% of its normal tint opacity** while refraction
+works, and snow/slush retains its opacity. A failed refraction path returns to full tint on the next field update.
+
+To avoid selecting an assumed transparent shader variant, refraction clones a **loaded stock rain material** using URP Particles/Unlit,
+keeping its shader keywords. It requires a supported transparent multiply-color variant without depth fading. If none is present, it warns
+and keeps the tint. This runtime guard avoids assuming a stripped variant exists; final rendering still needs an in-game check.
 
 ```ini
 [Wipers]
+WeatherEffects = true
 RefractionEnabled = true
-RefractionCaptureWidth = 640
-RefractionCaptureHz = 15
+RefractionCaptureWidth = 320
 RefractionStrength = 0.008
-RefractionFlipY = false
+RainObscuration = 1
+
+[Diagnostics]
+VerboseLogging = false
 ```
 
-Restart after changing. Width allows 320–1280, rate 5–144 Hz, strength 0.001–0.02. Set `RefractionEnabled = false` to compare against 0.6.2-style
-water tint. The existing `RainObscuration` controls the tint fallback/highlights; `RefractionStrength` controls the ripple sampling offset.
-If the captured scenery is upside down on your graphics backend, set `RefractionFlipY = true` and restart.
+Restart after changing graphics settings. The existing width name is retained for config compatibility (320–1280 pixels); the new-install
+default is 320. `RefractionCaptureHz` and `RefractionFlipY` are retired and ignored if old config entries remain. The copy is always from the
+current rendered frame. Strength allows 0.001–0.02; `RainObscuration` allows 0.5–3. Set `RefractionEnabled = false` for an A/B comparison.
+Routine attachment/integration logs require verbose logging; warnings/errors remain visible. Explicit window geometry reports still log
+their output location when that separate diagnostic is requested.
 
-**Tradeoffs to check in-game:** the captured world updates at the configured rate, so wet areas can lag or ghost while driving/looking around.
-The helper renders world geometry again; low resolution reduces pixel work but does not eliminate CPU culling/draw submission. Its request
-disables shadows, MSAA, HDR and postprocessing to keep cost down, so brightness/shadow differences from the normal view may be visible.
-There is no measured Unity/GPU performance result here. Do not assume this is faster than sampling a scene-color copy.
+This removes extra scene culling/draw submissions and deliberately stale images. It is not free: forcing sampleable color can require an
+intermediate camera target/final blit, plus the small downsample and water draw. No game FPS improvement is claimed without a playtest.
+Water simulation freezes when paused; the same-frame pass can still run for visible wet glass to keep the paused image consistent.
 
-Playtest vanilla and Open World in rain: verify bent scenery without gray saturation, clean wiped arcs, correct texture orientation and
-alignment when turning/look controls/FOV change, cockpit/hand/HUD occlusion, distant terrain, pause/outside-camera behavior and mod unload.
-Compare refraction off versus 640/15 and 320/15 at the same location; also try 640/30 for image latency versus cost. Watch for a
-`Windshield camera refraction disabled` warning. Rendering, particle-shader vertex alpha, capture color matching and live performance need
-this test; the automated tests exercise timing, dry/wiped masks, saturated ripples, offset bounds and capture aspect only.
+## Precipitation and wipers
 
-## Windshield precipitation — 0.6.2
+Rain deposits water/impact highlights; snow accumulates as wipeable slush. Car-relative airflow changes streak direction and exposure,
+with adhered-water runoff capped at 0.025 glass-plane units/sec and no extra speed-dependent drying. The actual rubber blade interval clears
+both layers; parked blades do not clear glass, and unswept areas retain buildup. Washer pulls add water at the nozzle targets.
 
-Version **0.6.2** limits runoff of water adhered to the windshield and removes speed-dependent evaporation. The previous version could
-combine fast transport off the glass with extra drying, making a favorable heading too effective at clearing rain without the wipers.
-Wind still changes streak direction and impact exposure, but its glass-plane transport is capped at 0.025 cockpit units/second. Ordinary
-slow drying remains when precipitation stops. The change retains the 20 Hz field-update limit. A model regression checks eight headings
-at three racing speeds (40/80/120 game units per second) under the same rain and 11-unit/s world wind, with wipers off.
+Selection stays manual: intermittent (1.4-second cycle plus 2.5-second default pause), continuous (1.4 seconds), and fast (0.8 seconds).
+Vanilla precipitation uses fixed normalized intensity 0.5. Open World's optional read-only adapter uses its eased 0–1 local precipitation,
+0.02 cutoff, altitude-dependent rain/snow split and prevailing wind. Initial overlapping tuning bands remain light/moderate/heavy for the
+three modes. These do not switch the dial automatically. No game assets are distributed.
 
-The weather experiment stays on **`test/windshield-weather`**, separate from `test/windshield-wipers`; no merge is required.
-Version 0.6.1 strengthens water obscuration and addresses the expensive per-frame field simulation reported during playtesting.
-Rain now deposits a broad, slightly uneven water film as well as larger drops, so leaving the wipers off reduces visibility across the glass.
-Water opacity rises with the film instead of staying near the original 20% ceiling. In the stationary vanilla model, 10 seconds with wipers
-off produces roughly 72% mean overlay opacity; continuous wiping still maintains the swept area. This is a model check, not a visual guarantee.
+**Open World API debt remains:** its current source does not expose a public weather snapshot, so the isolated optional adapter still reads
+private fields. See [the proposed API contract](docs/public-weather-api.md). This change does not modify Open World or publish an upstream
+request. Any future API integration should use final local rain/snow intensities and wind independent of particle graphics budgets.
 
-The full water/slush field and texture upload now run at most **20 Hz**. Cheap motor samples collect the entire traversed range, including
-reversals, before each field update. Drift interpolation weights are computed once per update instead of per pixel, and long hitches do not
-queue field catch-up work. A 144 FPS CPU-only comparison over 10 simulated seconds reduced full-field passes from 1,440 to 200 and field CPU
-time by about 93% on the cloud worker. This excludes Unity, rendering, texture uploads and the GPU; actual game FPS needs another playtest.
+## In-game validation for 0.8.0
 
-`[Wipers] RainObscuration = 1` is the new default. Increase it toward 3 for stronger water obscuration, or reduce it toward 0.5.
-Restart after changing. `WeatherEffects = false` remains available for a comparison with the weather overlay disabled.
+- Compare the same rainy location with refraction off/on at width 320, then 640. Check frame-time consistency as well as FPS.
+- In vanilla and Open World, drive/turn/look around with saturated glass: the distorted world should move in the same frame; check orientation,
+  color matching, depth/occlusion, distant terrain, drops and wiped arcs. There should be no second/lagged set of rain particles.
+- Check clear/dry glass and looking away from the wet front glass; no scene-color copy should be needed. Pause, change cameras/bodies, and unload.
+- If Helicopter is installed, test its camera interaction. No auxiliary camera should exist or reach another mod's camera callbacks.
+- With Smart Mirror, verify auto-aim remains enabled on attach and on grab/release without movement. Move the mirror or reset it to enter
+  manual control, then unload to restore only auto-aim components that SlapPack actually suspended.
+- Inspect warnings, and use `VerboseLogging = true` for binding details. GPU RenderGraph execution, stock material eligibility, orientation,
+  shader behavior, live optional-mod compatibility, and performance cannot be validated by the model tests here.
 
-This implementation starts from `test/windshield-wipers` (0.5.3). Copy the supplied `SlapPack` folder over the existing
-`BepInEx/HalfGripMods/SlapPack` folder and restart. HalfGripTools compiles the source; no private game assets or new dependency are shipped.
-
-Rain creates small splash highlights and persistent water deposits. Snow creates pale, denser slush patches. Both build up over time,
-remain after precipitation stops, and drift/drain along the glass under gravity and car-relative airflow. Slush moves more slowly than water.
-Forward motion increases the rate of windshield impacts; reversing and crosswind change streak direction. This pass uses wipeable slush,
-without persistent ice/frost. The overlay follows only the real front windshield triangles, including the center bend.
-
-The actual rubber section of each blade clears both layers as it passes. Glass outside the rubber's reach retains buildup. Parked blades
-do not clear the screen. Motor substeps record the swept path while deposition and clearing are batched into 20 Hz field updates, preserving
-coverage through stroke reversals without full-grid work per motor sample. The mask may trail the blade by up to one field update, about 50 ms
-at normal frame rates. The washer deposits water at its existing nozzle targets, which the normal washer wipe burst removes.
-
-Selection stays **manual**: off / intermittent / continuous / fast, with the existing 2.5-second intermittent pause, 1.4-second normal
-cycle and 0.8-second fast cycle. Faster modes reduce the time available for deposits to return between passes; they do not switch themselves.
-
-- **Vanilla:** `WeatherController.activeProfile.rain/snow` selects precipitation at a fixed normalized intensity of **0.5**. Continuous
-  mode is the baseline for maintaining visibility. The vanilla profile has precipitation flags rather than an intensity parameter.
-- **Open World:** optional read-only reflection reads its eased local precipitation in **0–1**, with its own 0.02 cutoff, altitude-based
-  rain/snow split (including sleet), origin-height offset and prevailing storm wind. This is independent of weather particle render-budget cuts.
-  No Open World install is needed for vanilla tracks. The adapter retries discovery if Open World loads later and warns once if its internal
-  interface changes, then falls back to the active vanilla weather flags.
-- Intended overlapping tuning bands are **light (0–0.33): intermittent**, **moderate (0.33–0.67): continuous**, and **heavy (0.67–1): fast**.
-  Deposition varies continuously rather than jumping at those boundaries. Vehicle speed increases exposure, so conditions can favor a faster
-  mode within a band. Final visual balance requires driving in the game.
-
-`[Wipers] WeatherEffects = true` enables the new effects; set false and restart to retain the controls/blades alone.
-Disabling `[Wipers] Enabled` or unloading the mod removes the precipitation overlay with the wipers. Body changes rebuild the surface and
-start it clear; camera changes keep the accumulated state. Original glass meshes/materials and the world's weather particles are untouched.
-
-Validation: compile against HalfGripRefs and run `tests/MirrorAdjustment.Tests.csproj`. The precipitation tests cover separate rain/slush
-buildup and impact decay, wipe coverage and parked blades, intensity/vehicle exposure, reversed airflow and slower slush movement, washer
-deposition, mode balance, frame rates, invalid inputs and field bounds. Existing cockpit-control tests remain included. These checks exercise
-the model, not Unity rendering or the live optional-mod adapter.
-
-**In-game playtest required:**
-
-- On a vanilla rainy track, stop with wipers off and confirm impacts/buildup; compare intermittent, continuous and fast while stationary and driving.
-- Try a snowy track: slush should persist after snowfall stops and clear only under the rubber, leaving the unswept edges.
-- In Open World, drive between clear sky, drizzle and heavy rain, then cross the snow line. Confirm gradual intensity changes and mixed precipitation.
-  Compare behavior at different graphics budgets and with Open World absent. Verify no adapter warning with the supported current version.
-- Drive forward, reverse and across the prevailing wind; check impact density and streak directions. Use the washer on a dry track.
-- Switch cameras, pause, change car bodies, restart the race and disable the mod. Check that the overlay follows only the front glass,
-  stays behind cockpit controls, freezes while paused, rebuilds on body changes and disappears completely on unload.
-
-With camera refraction disabled, the fallback is a procedural transparent deposit/highlight layer; that fallback does not refract the scene.
-Visual scale, brightness, sorting, performance and live weather transitions still need the playtest above. No game runtime is available here.
+See [STATUS.md](STATUS.md) for the handover and outstanding runtime checks. Install by copying `SlapPack` over
+`BepInEx/HalfGripMods/SlapPack` and restarting the game.
 
 ## Windshield-wiper prototype
 
@@ -324,16 +285,20 @@ do not commit or distribute them with this mod.
 
 ```bash
 # In the prepared cloud environment, activate dotnet first:
-source /workspace/.halfgrip-setup/activate.sh
+source /workspace/setup-halfgrip/activate.sh
+
+# Build HalfGripTools into a writable scratch folder if needed:
+dotnet build /workspace/setup-halfgrip/dependencies/HalfGripTools/HalfGripTools/HalfGripTools.csproj -c Release \
+  -p:GameDir=/workspace/HalfGripRefs/game -p:OutDir=/workspace/work/slappack/tools/
 
 # From the HalfGripSlapPack repository:
 dotnet build SlapPack/SlapPack.csproj -c Release \
-  -p:HalfGripToolsDll=/workspace/.halfgrip-setup/build/tools/HalfGripTools.dll
+  -p:HalfGripToolsDll=/workspace/work/slappack/tools/HalfGripTools.dll
 dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
 For another layout, pass `-p:HalfGripRefsDir=/absolute/path/to/HalfGripRefs` and your own `HalfGripToolsDll` path.
-The 130 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
+The 133 tests exercise two-axis sensitivity, both stops, reversal at a stop, restored values, reset, invalid numeric inputs,
 hand depth clearance as the mirror approaches or recedes, and camera-layer inclusion/restoration without losing unrelated changes.
 The window tests cover proportional multi-turn travel, raising/lowering, stops without windup, independent doors, angular seam crossing,
 and invalid input. Pane tests cover fully raised/lowered states, partial travel, clipping within sloped frames, and duplicate triangle vertices.

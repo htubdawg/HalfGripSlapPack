@@ -120,7 +120,7 @@ namespace HalfGripSlapPack
             catch (Exception error) { context.Log.LogWarning("Relay sound unavailable; turn signals remain active: " + error.Message); }
             amber = TurnSignalVisuals.Material(new Color(1f, 0.4f, 0.015f, 1), owned);
             RebuildLamps();
-            context.Log.LogInfo("Turn-signal stalk attached left of steering column. Down=left, up=right; halfway=tap/hold, full=latch. Cockpit arrows and amber lamps active.");
+            ModLog.Info(context.Log, "Turn-signal stalk attached left of steering column. Down=left, up=right; halfway=tap/hold, full=latch. Cockpit arrows and amber lamps active.");
         }
 
         private static Vector3 IndicatorPosition(CarLink target, Transform parent, Vector3 wheelPosition)
