@@ -47,7 +47,8 @@ namespace HalfGripSlapPack
             Vector3 velocity = car.rb ? car.rb.linearVelocity : Vector3.zero;
             Vector3 relative = car.transform.InverseTransformDirection(weather.Wind - velocity);
             // Project gravity and air onto the real glass, so reversing and crosswind
-            // reverse the appropriate streak direction. Normal incidence adds impacts.
+            // reverse the appropriate streak direction. Normal incidence adds impacts;
+            // the field separately limits how quickly adhered water can run off.
             Vector3 flow = car.transform.InverseTransformDirection(Vector3.down) * 0.018f + relative * 0.0025f;
             PanePoint planeFlow = glass.ProjectVector(flow);
             float incidence = Mathf.Max(0, -Vector3.Dot(relative, glass.Normal));

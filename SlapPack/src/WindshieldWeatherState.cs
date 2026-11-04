@@ -61,11 +61,22 @@ namespace HalfGripSlapPack
             if (float.IsNaN(impactSpeed) || float.IsInfinity(impactSpeed)) impactSpeed = 0;
             if (float.IsNaN(flowX) || float.IsInfinity(flowX)) flowX = 0;
             if (float.IsNaN(flowY) || float.IsInfinity(flowY)) flowY = 0;
+            // This is adhered water, not airborne rain. Unbounded air-to-surface
+            // coupling can drain the glass faster than rain replenishes it on a
+            // favorable heading. Bound runoff without changing its direction.
+            double flowSpeed = Math.Sqrt((double)flowX * flowX + (double)flowY * flowY);
+            if (flowSpeed > 0.025)
+            {
+                float scale = (float)(0.025 / flowSpeed);
+                flowX *= scale; flowY *= scale;
+            }
             float total = rain + snow;
             if (total > 1) { rain /= total; snow /= total; }
             float exposure = 1 + Math.Min(2, Math.Max(0, impactSpeed) / 35);
             float dx = flowX * dt / SpanX * Width, dy = flowY * dt / SpanY * Height;
-            float waterKeep = (float)Math.Exp(-dt * (0.012 + Math.Max(0, impactSpeed) * 0.0005));
+            // Impact exposure adds incoming water. It must not also act as a
+            // speed-dependent dryer; runoff already accounts for air movement.
+            float waterKeep = (float)Math.Exp(-dt * 0.012);
             float snowKeep = (float)Math.Exp(-dt * 0.003);
             var waterDrift = new Drift(-dx, -dy);
             var snowDrift = new Drift(-dx * 0.07f, -dy * 0.07f);

@@ -3,7 +3,13 @@ A collection of new things to interact with in your car.
 
 Features: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers with rain/slush interaction.
 
-## Windshield precipitation — 0.6.1
+## Windshield precipitation — 0.6.2
+
+Version **0.6.2** limits runoff of water adhered to the windshield and removes speed-dependent evaporation. The previous version could
+combine fast transport off the glass with extra drying, making a favorable heading too effective at clearing rain without the wipers.
+Wind still changes streak direction and impact exposure, but its glass-plane transport is capped at 0.025 cockpit units/second. Ordinary
+slow drying remains when precipitation stops. The change retains the 20 Hz field-update limit. A model regression checks eight headings
+at three racing speeds (40/80/120 game units per second) under the same rain and 11-unit/s world wind, with wipers off.
 
 The weather experiment stays on **`test/windshield-weather`**, separate from `test/windshield-wipers`; no merge is required.
 Version 0.6.1 strengthens water obscuration and addresses the expensive per-frame field simulation reported during playtesting.

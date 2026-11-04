@@ -194,5 +194,40 @@ internal static class WindshieldWeatherTests
             Assert(WindshieldWeatherOptics.Opacity(0, 0) == 0, "Dry glass is obscured.");
             Assert(WindshieldWeatherOptics.Opacity(0.2f, 0, 2) > WindshieldWeatherOptics.Opacity(0.2f, 0, 1), "Obscuration setting has no effect.");
         });
+        check("Headwind, tailwind and crosswind cannot keep a rainy windshield clear at racing speeds", () =>
+        {
+            float minimum = 1, maximum = 0;
+            foreach (float speed in new[] { 40f, 80f, 120f })
+                for (int heading = 0; heading < 8; heading++)
+                {
+                    double angle = heading * Math.PI / 4;
+                    // Fixed 11-unit/s world wind, transformed into each car heading.
+                    // Representative tilted glass: normal=(0,.55,.835), up=(0,.835,-.55).
+                    float relativeForward = 11 * (float)Math.Cos(angle) - speed;
+                    float relativeSide = -11 * (float)Math.Sin(angle);
+                    float incidence = Math.Max(0, -relativeForward * 0.835f);
+                    float flowX = relativeSide * 0.0025f;
+                    float flowY = -0.018f * 0.835f - relativeForward * 0.55f * 0.0025f;
+                    var field = new WindshieldWeatherState(Opening);
+                    for (int tick = 0; tick < 200; tick++) field.Deposit(0.05f, 0.5f, 0, incidence, flowX, flowY, false);
+                    float opacity = 0; int count = 0;
+                    for (int k = 0; k < field.Water.Length; k++)
+                        if (field.Inside[k]) { opacity += WindshieldWeatherOptics.Opacity(field.Water[k], 0); count++; }
+                    opacity /= count;
+                    minimum = Math.Min(minimum, opacity); maximum = Math.Max(maximum, opacity);
+                    Assert(opacity > 0.6f, "Wind self-cleared rain at speed=" + speed + ", heading=" + heading + ": " + opacity);
+                }
+            Console.WriteLine("Racing-speed heading sweep, wipers off after 10s: mean opacity range=" + minimum + "–" + maximum);
+        });
+        check("Speed exposure cannot independently dry existing water", () =>
+        {
+            var stopped = new WindshieldWeatherState(Opening);
+            var moving = new WindshieldWeatherState(Opening);
+            int center = 40 * WindshieldWeatherState.Width + 80;
+            stopped.Water[center] = moving.Water[center] = 0.8f;
+            stopped.Deposit(0.2f, 0, 0, 0, 0, 0, false);
+            moving.Deposit(0.2f, 0, 0, 120, 0, 0, false);
+            Assert(stopped.Water.SequenceEqual(moving.Water), "Speed still acts as a separate dryer.");
+        });
     }
 }
