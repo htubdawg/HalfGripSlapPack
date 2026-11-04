@@ -82,6 +82,20 @@ namespace HalfGripSlapPack
             }
             return origin + right * p.X + up * p.Y + normal * clearance;
         }
+
+        internal Vector3 Normal => normal;
+        internal PanePoint ProjectVector(Vector3 v) => new PanePoint(Vector3.Dot(v, right), Vector3.Dot(v, up));
+
+        internal Mesh WeatherMesh(WindshieldWeatherState field)
+        {
+            var mesh = new Mesh { name = "SlapPack precipitation on front glass" };
+            mesh.indexFormat = points.Length > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+            mesh.vertices = points.Select(p => p + normal * 0.006f).ToArray();
+            mesh.uv = projected.Select(p => new Vector2((p.X - field.MinX) / field.SpanX, (p.Y - field.MinY) / field.SpanY)).ToArray();
+            mesh.triangles = triangles;
+            mesh.RecalculateBounds(); mesh.RecalculateNormals();
+            return mesh;
+        }
     }
 
     internal sealed class WiperBlades

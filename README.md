@@ -1,7 +1,56 @@
 # HalfGripSlapPack
 A collection of new things to interact with in your car.
 
-Features: adjustable rear-view mirror, working window cranks, turn signals, and prototype windshield wipers.
+Features: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers with rain/slush interaction.
+
+## Windshield precipitation — 0.6.0
+
+This implementation starts from `test/windshield-wipers` (0.5.3). Copy the supplied `SlapPack` folder over the existing
+`BepInEx/HalfGripMods/SlapPack` folder and restart. HalfGripTools compiles the source; no private game assets or new dependency are shipped.
+
+Rain creates small splash highlights and persistent water deposits. Snow creates pale, denser slush patches. Both build up over time,
+remain after precipitation stops, and drift/drain along the glass under gravity and car-relative airflow. Slush moves more slowly than water.
+Forward motion increases the rate of windshield impacts; reversing and crosswind change streak direction. This pass uses wipeable slush,
+without persistent ice/frost. The overlay follows only the real front windshield triangles, including the center bend.
+
+The actual rubber section of each blade clears both layers as it passes. Glass outside the rubber's reach retains buildup. Parked blades
+do not clear the screen. Fixed substeps advance deposition and the existing motor together, preserving coverage through stroke reversals
+and frame hitches. The washer now deposits water at its existing nozzle targets, which the normal washer wipe burst removes.
+
+Selection stays **manual**: off / intermittent / continuous / fast, with the existing 2.5-second intermittent pause, 1.4-second normal
+cycle and 0.8-second fast cycle. Faster modes reduce the time available for deposits to return between passes; they do not switch themselves.
+
+- **Vanilla:** `WeatherController.activeProfile.rain/snow` selects precipitation at a fixed normalized intensity of **0.5**. Continuous
+  mode is the baseline for maintaining visibility. The vanilla profile has precipitation flags rather than an intensity parameter.
+- **Open World:** optional read-only reflection reads its eased local precipitation in **0–1**, with its own 0.02 cutoff, altitude-based
+  rain/snow split (including sleet), origin-height offset and prevailing storm wind. This is independent of weather particle render-budget cuts.
+  No Open World install is needed for vanilla tracks. The adapter retries discovery if Open World loads later and warns once if its internal
+  interface changes, then falls back to the active vanilla weather flags.
+- Intended overlapping tuning bands are **light (0–0.33): intermittent**, **moderate (0.33–0.67): continuous**, and **heavy (0.67–1): fast**.
+  Deposition varies continuously rather than jumping at those boundaries. Vehicle speed increases exposure, so conditions can favor a faster
+  mode within a band. Final visual balance requires driving in the game.
+
+`[Wipers] WeatherEffects = true` enables the new effects; set false and restart to retain the controls/blades alone.
+Disabling `[Wipers] Enabled` or unloading the mod removes the precipitation overlay with the wipers. Body changes rebuild the surface and
+start it clear; camera changes keep the accumulated state. Original glass meshes/materials and the world's weather particles are untouched.
+
+Validation: compile against HalfGripRefs and run `tests/MirrorAdjustment.Tests.csproj`. The precipitation tests cover separate rain/slush
+buildup and impact decay, wipe coverage and parked blades, intensity/vehicle exposure, reversed airflow and slower slush movement, washer
+deposition, mode balance, frame rates, invalid inputs and field bounds. Existing cockpit-control tests remain included. These checks exercise
+the model, not Unity rendering or the live optional-mod adapter.
+
+**In-game playtest required:**
+
+- On a vanilla rainy track, stop with wipers off and confirm impacts/buildup; compare intermittent, continuous and fast while stationary and driving.
+- Try a snowy track: slush should persist after snowfall stops and clear only under the rubber, leaving the unswept edges.
+- In Open World, drive between clear sky, drizzle and heavy rain, then cross the snow line. Confirm gradual intensity changes and mixed precipitation.
+  Compare behavior at different graphics budgets and with Open World absent. Verify no adapter warning with the supported current version.
+- Drive forward, reverse and across the prevailing wind; check impact density and streak directions. Use the washer on a dry track.
+- Switch cameras, pause, change car bodies, restart the race and disable the mod. Check that the overlay follows only the front glass,
+  stays behind cockpit controls, freezes while paused, rebuilds on body changes and disappears completely on unload.
+
+The image is a procedural transparent deposit/highlight layer using the existing URP shader support; it does not refract the scene.
+Visual scale, brightness, sorting, performance and live weather transitions still need the playtest above. No game runtime is available here.
 
 ## Windshield-wiper prototype
 
@@ -26,7 +75,8 @@ with a windshield symbol and a speed sleeve marked **0 / I / II / III**. No exte
 Two dark rubber/metal wipers are fitted to the actual front windshield triangles, with a tandem sweep constrained to the opening.
 The geometry follows the glass's slight center bend and moves with the car. It rebuilds after a body change and remains visible in the outside view.
 The driver washer nozzle is offset and aimed inward, separately from the blade pivot; the passenger spray retains its original trajectory.
-Washer jets are a small visual spray effect only: **rain, accumulated water, clearing masks, fluid consumption and rain sensing are not implemented**.
+In 0.6.0 the washer spray also deposits fluid on the glass and the blades clear accumulated water/slush as described above.
+Fluid consumption and automatic rain sensing are not implemented.
 The controls and selected speed start off each race. Pausing freezes the blades; losing focus or leaving the cockpit releases a held washer control.
 
 CFG section `[Wipers]` provides `Enabled` (default true), `IntermittentPause` (2.5 seconds), `StalkLength` (3.5 cockpit units) and `StalkUpAngle` (18 degrees).

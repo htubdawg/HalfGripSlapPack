@@ -11,7 +11,7 @@ namespace HalfGripSlapPack
     public sealed class WiperInstaller : MonoBehaviour
     {
         private ModContext context;
-        private ConfigEntry<bool> enableWipers;
+        private ConfigEntry<bool> enableWipers, enableWeather;
         private ConfigEntry<float> stalkLength, stalkUpAngle, intermittentPause;
         private CarLink link;
         private CarControllerNew car;
@@ -19,6 +19,7 @@ namespace HalfGripSlapPack
         private WiperStalk stalk;
         private WiperState state;
         private WiperBlades blades;
+        private WindshieldWeather weather;
         private readonly List<Object> owned = new List<Object>(), bladeOwned = new List<Object>();
         private float nextScan;
         private int glassSignature;
@@ -26,7 +27,8 @@ namespace HalfGripSlapPack
         internal void Initialize(ModContext ctx)
         {
             context = ctx;
-            enableWipers = ctx.Config.Bind("Wipers", "Enabled", true, "Enable the right-hand washer/speed stalk and windshield wipers. No rain mechanics.");
+            enableWipers = ctx.Config.Bind("Wipers", "Enabled", true, "Enable the right-hand washer/speed stalk, windshield wipers and precipitation interaction.");
+            enableWeather = ctx.Config.Bind("Wipers", "WeatherEffects", true, "Rain/snow impacts, buildup and blade clearing on the front glass. Supports vanilla and optional Open World weather. Restart after changing.");
             intermittentPause = ctx.Config.Bind("Wipers", "IntermittentPause", 2.5f,
                 new ConfigDescription("Seconds parked between normal-speed wipes in the first dial position. Restart after changing.", new AcceptableValueRange<float>(0.5f, 10f)));
             stalkLength = ctx.Config.Bind("Wipers", "StalkLength", 3.5f,
@@ -50,11 +52,12 @@ namespace HalfGripSlapPack
                     int signature = GlassSignature();
                     if (signature != glassSignature)
                     {
-                        DestroyOwned(bladeOwned); blades = null; glassSignature = signature;
-                        try { blades = new WiperBlades(car.transform, WiperWindshield.Find(car, cameras), bladeOwned); }
+                        DestroyOwned(bladeOwned); blades = null; weather = null; glassSignature = signature;
+                        try { FitGlass(); }
                         catch (Exception error)
                         {
                             DestroyOwned(bladeOwned);
+                            blades = null; weather = null;
                             context.Log.LogWarning("Wipers could not fit this body: " + error.Message);
                         }
                     }
@@ -84,7 +87,7 @@ namespace HalfGripSlapPack
         private void Attach(CarLink target, CameraSwitch cameraSwitch, Grabber hand)
         {
             link = target; car = target.cc; cameras = cameraSwitch; state = new WiperState(intermittentPause.Value);
-            blades = new WiperBlades(car.transform, WiperWindshield.Find(car, cameras), bladeOwned);
+            FitGlass();
             glassSignature = GlassSignature();
             HingedObject wheel = target.sw.wheel;
             Transform parent = wheel.transform.parent;
@@ -130,8 +133,34 @@ namespace HalfGripSlapPack
         {
             if (!car || state == null) return;
             if (Time.timeScale <= 0) return;
-            state.Tick(Time.deltaTime);
+            if (weather == null) state.Tick(Time.deltaTime);
+            else
+            {
+                WindshieldPrecipitation precipitation = weather.Read();
+                // Subdivide the motor and deposition together. A whole-frame endpoint
+                // mask misses out-and-back turns and may clear untouched glass on hitches.
+                int steps = Mathf.Max(1, Mathf.CeilToInt(Time.deltaTime * 120));
+                float dt = Time.deltaTime / steps;
+                for (int i = 0; i < steps; i++)
+                {
+                    float previous = state.Sweep;
+                    state.Tick(dt);
+                    weather.Step(dt, precipitation, previous, state.Sweep, state.Washing);
+                }
+                weather.Draw();
+            }
             if (blades != null) blades.Step(state.Sweep, state.Washing, Time.deltaTime);
+        }
+
+        private void FitGlass()
+        {
+            WiperWindshield glass = WiperWindshield.Find(car, cameras);
+            blades = new WiperBlades(car.transform, glass, bladeOwned);
+            if (enableWeather.Value)
+            {
+                weather = new WindshieldWeather(car, glass, bladeOwned, message => context.Log.LogWarning(message));
+                context.Log.LogInfo("Windshield precipitation attached: vanilla fixed medium intensity; optional Open World 0–1 rain/snow; manual wiper selection.");
+            }
         }
 
         private int GlassSignature()
@@ -151,7 +180,7 @@ namespace HalfGripSlapPack
         {
             if (stalk) stalk.gameObject.SetActive(false);
             DestroyOwned(owned); DestroyOwned(bladeOwned);
-            car = null; link = null; cameras = null; stalk = null; state = null; blades = null;
+            car = null; link = null; cameras = null; stalk = null; state = null; blades = null; weather = null;
         }
 
         private static void DestroyOwned(List<Object> objects)
