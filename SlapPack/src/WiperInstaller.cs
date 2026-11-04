@@ -12,7 +12,7 @@ namespace HalfGripSlapPack
     {
         private ModContext context;
         private ConfigEntry<bool> enableWipers, enableWeather;
-        private ConfigEntry<float> stalkLength, stalkUpAngle, intermittentPause;
+        private ConfigEntry<float> stalkLength, stalkUpAngle, intermittentPause, rainObscuration;
         private CarLink link;
         private CarControllerNew car;
         private CameraSwitch cameras;
@@ -29,6 +29,8 @@ namespace HalfGripSlapPack
             context = ctx;
             enableWipers = ctx.Config.Bind("Wipers", "Enabled", true, "Enable the right-hand washer/speed stalk, windshield wipers and precipitation interaction.");
             enableWeather = ctx.Config.Bind("Wipers", "WeatherEffects", true, "Rain/snow impacts, buildup and blade clearing on the front glass. Supports vanilla and optional Open World weather. Restart after changing.");
+            rainObscuration = ctx.Config.Bind("Wipers", "RainObscuration", 1f,
+                new ConfigDescription("Strength of water obscuration on the windshield. Higher values reduce visibility more. Restart after changing.", new AcceptableValueRange<float>(0.5f, 3f)));
             intermittentPause = ctx.Config.Bind("Wipers", "IntermittentPause", 2.5f,
                 new ConfigDescription("Seconds parked between normal-speed wipes in the first dial position. Restart after changing.", new AcceptableValueRange<float>(0.5f, 10f)));
             stalkLength = ctx.Config.Bind("Wipers", "StalkLength", 3.5f,
@@ -136,18 +138,17 @@ namespace HalfGripSlapPack
             if (weather == null) state.Tick(Time.deltaTime);
             else
             {
-                WindshieldPrecipitation precipitation = weather.Read();
-                // Subdivide the motor and deposition together. A whole-frame endpoint
-                // mask misses out-and-back turns and may clear untouched glass on hitches.
+                // Sample the motor's actual path cheaply, including stroke reversals.
+                // The full water/slush grid and texture are updated only at 20 Hz.
                 int steps = Mathf.Max(1, Mathf.CeilToInt(Time.deltaTime * 120));
                 float dt = Time.deltaTime / steps;
                 for (int i = 0; i < steps; i++)
                 {
                     float previous = state.Sweep;
                     state.Tick(dt);
-                    weather.Step(dt, precipitation, previous, state.Sweep, state.Washing);
+                    weather.Record(dt, previous, state.Sweep, state.Washing);
                 }
-                weather.Draw();
+                weather.Step();
             }
             if (blades != null) blades.Step(state.Sweep, state.Washing, Time.deltaTime);
         }
@@ -158,7 +159,7 @@ namespace HalfGripSlapPack
             blades = new WiperBlades(car.transform, glass, bladeOwned);
             if (enableWeather.Value)
             {
-                weather = new WindshieldWeather(car, glass, bladeOwned, message => context.Log.LogWarning(message));
+                weather = new WindshieldWeather(car, glass, bladeOwned, message => context.Log.LogWarning(message), rainObscuration.Value);
                 context.Log.LogInfo("Windshield precipitation attached: vanilla fixed medium intensity; optional Open World 0–1 rain/snow; manual wiper selection.");
             }
         }

@@ -3,7 +3,21 @@ A collection of new things to interact with in your car.
 
 Features: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers with rain/slush interaction.
 
-## Windshield precipitation — 0.6.0
+## Windshield precipitation — 0.6.1
+
+The weather experiment stays on **`test/windshield-weather`**, separate from `test/windshield-wipers`; no merge is required.
+Version 0.6.1 strengthens water obscuration and addresses the expensive per-frame field simulation reported during playtesting.
+Rain now deposits a broad, slightly uneven water film as well as larger drops, so leaving the wipers off reduces visibility across the glass.
+Water opacity rises with the film instead of staying near the original 20% ceiling. In the stationary vanilla model, 10 seconds with wipers
+off produces roughly 72% mean overlay opacity; continuous wiping still maintains the swept area. This is a model check, not a visual guarantee.
+
+The full water/slush field and texture upload now run at most **20 Hz**. Cheap motor samples collect the entire traversed range, including
+reversals, before each field update. Drift interpolation weights are computed once per update instead of per pixel, and long hitches do not
+queue field catch-up work. A 144 FPS CPU-only comparison over 10 simulated seconds reduced full-field passes from 1,440 to 200 and field CPU
+time by about 93% on the cloud worker. This excludes Unity, rendering, texture uploads and the GPU; actual game FPS needs another playtest.
+
+`[Wipers] RainObscuration = 1` is the new default. Increase it toward 3 for stronger water obscuration, or reduce it toward 0.5.
+Restart after changing. `WeatherEffects = false` remains available for a comparison with the weather overlay disabled.
 
 This implementation starts from `test/windshield-wipers` (0.5.3). Copy the supplied `SlapPack` folder over the existing
 `BepInEx/HalfGripMods/SlapPack` folder and restart. HalfGripTools compiles the source; no private game assets or new dependency are shipped.
@@ -14,8 +28,9 @@ Forward motion increases the rate of windshield impacts; reversing and crosswind
 without persistent ice/frost. The overlay follows only the real front windshield triangles, including the center bend.
 
 The actual rubber section of each blade clears both layers as it passes. Glass outside the rubber's reach retains buildup. Parked blades
-do not clear the screen. Fixed substeps advance deposition and the existing motor together, preserving coverage through stroke reversals
-and frame hitches. The washer now deposits water at its existing nozzle targets, which the normal washer wipe burst removes.
+do not clear the screen. Motor substeps record the swept path while deposition and clearing are batched into 20 Hz field updates, preserving
+coverage through stroke reversals without full-grid work per motor sample. The mask may trail the blade by up to one field update, about 50 ms
+at normal frame rates. The washer deposits water at its existing nozzle targets, which the normal washer wipe burst removes.
 
 Selection stays **manual**: off / intermittent / continuous / fast, with the existing 2.5-second intermittent pause, 1.4-second normal
 cycle and 0.8-second fast cycle. Faster modes reduce the time available for deposits to return between passes; they do not switch themselves.

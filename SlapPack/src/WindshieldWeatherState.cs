@@ -16,6 +16,7 @@ namespace HalfGripSlapPack
         private readonly float[][] angles = { new float[Width * Height], new float[Width * Height] };
         private readonly float[][] margins = { new float[Width * Height], new float[Width * Height] };
         private readonly float[] waterNext = new float[Width * Height], snowNext = new float[Width * Height];
+        private readonly float[] deposition = new float[Width * Height];
         private readonly WiperGeometry[] blades;
         private readonly Random random = new Random(4093);
         private double rainDrops, snowDrops, washerDrops;
@@ -29,6 +30,7 @@ namespace HalfGripSlapPack
                 for (int x = 0; x < Width; x++)
                 {
                     int k = y * Width + x; PanePoint p = Point(x, y);
+                    deposition[k] = 1 + 0.3f * (float)(Math.Sin(x * 0.19) * Math.Cos(y * 0.23));
                     Inside[k] = true;
                     for (int i = 0; i < opening.Count; i++)
                     {
@@ -52,7 +54,7 @@ namespace HalfGripSlapPack
 
         // Relative air, in glass-plane units/sec, includes gravity along the tilted glass.
         // Slush is heavier and moves much more slowly than water. Off-glass flow drains.
-        internal void Deposit(float dt, float rain, float snow, float impactSpeed, float flowX, float flowY, bool washing)
+        internal void Deposit(float dt, float rain, float snow, float impactSpeed, float flowX, float flowY, bool washing, float washerFraction = 1)
         {
             if (!(dt > 0) || float.IsInfinity(dt)) return;
             rain = Unit(rain); snow = Unit(snow);
@@ -65,13 +67,17 @@ namespace HalfGripSlapPack
             float dx = flowX * dt / SpanX * Width, dy = flowY * dt / SpanY * Height;
             float waterKeep = (float)Math.Exp(-dt * (0.012 + Math.Max(0, impactSpeed) * 0.0005));
             float snowKeep = (float)Math.Exp(-dt * 0.003);
+            var waterDrift = new Drift(-dx, -dy);
+            var snowDrift = new Drift(-dx * 0.07f, -dy * 0.07f);
+            float rainFilm = rain * exposure * dt * 0.08f;
+            float snowFilm = snow * exposure * dt * 0.12f;
             for (int y = 0; y < Height; y++)
                 for (int x = 0; x < Width; x++)
                 {
                     int k = y * Width + x;
                     if (!Inside[k]) continue;
-                    waterNext[k] = Sample(Water, x - dx, y - dy) * waterKeep;
-                    snowNext[k] = Sample(Snow, x - dx * 0.07f, y - dy * 0.07f) * snowKeep;
+                    waterNext[k] = Math.Min(1, Sample(Water, x, y, waterDrift) * waterKeep + rainFilm * deposition[k]);
+                    snowNext[k] = Math.Min(1, Sample(Snow, x, y, snowDrift) * snowKeep + snowFilm * deposition[k]);
                     Impact[k] = Math.Max(0, Impact[k] - dt * 4);
                 }
             Array.Copy(waterNext, Water, Water.Length); Array.Copy(snowNext, Snow, Snow.Length);
@@ -81,7 +87,7 @@ namespace HalfGripSlapPack
             while (snowDrops >= 1) { snowDrops--; Splat(random.Next(Width), random.Next(Height), true); }
             if (washing)
             {
-                washerDrops += 100 * dt;
+                washerDrops += 100 * dt * Unit(washerFraction);
                 while (washerDrops >= 1)
                 {
                     washerDrops--;
@@ -92,18 +98,33 @@ namespace HalfGripSlapPack
             }
         }
 
-        private float Sample(float[] field, float x, float y)
+        private readonly struct Drift
         {
-            int ix = (int)Math.Floor(x), iy = (int)Math.Floor(y);
-            float fx = x - ix, fy = y - iy;
-            return At(field, ix, iy) * (1 - fx) * (1 - fy) + At(field, ix + 1, iy) * fx * (1 - fy)
-                + At(field, ix, iy + 1) * (1 - fx) * fy + At(field, ix + 1, iy + 1) * fx * fy;
+            internal readonly int X, Y;
+            internal readonly float A, B, C, D;
+            internal Drift(float x, float y)
+            {
+                X = (int)Math.Floor(x); Y = (int)Math.Floor(y);
+                float fx = x - X, fy = y - Y;
+                A = (1 - fx) * (1 - fy); B = fx * (1 - fy); C = (1 - fx) * fy; D = fx * fy;
+            }
+        }
+        private float Sample(float[] field, int x, int y, Drift drift)
+        {
+            int ix = x + drift.X, iy = y + drift.Y;
+            if (ix >= 0 && iy >= 0 && ix + 1 < Width && iy + 1 < Height)
+            {
+                int k = iy * Width + ix;
+                return field[k] * drift.A + field[k + 1] * drift.B + field[k + Width] * drift.C + field[k + Width + 1] * drift.D;
+            }
+            return At(field, ix, iy) * drift.A + At(field, ix + 1, iy) * drift.B
+                + At(field, ix, iy + 1) * drift.C + At(field, ix + 1, iy + 1) * drift.D;
         }
         private float At(float[] field, int x, int y) => x < 0 || y < 0 || x >= Width || y >= Height ? 0 : field[y * Width + x];
 
         private void Splat(int cx, int cy, bool snow)
         {
-            float radius = snow ? 2.5f : 1.5f;
+            float radius = 2.5f;
             int extent = (int)Math.Ceiling(radius);
             for (int y = cy - extent; y <= cy + extent; y++)
                 for (int x = cx - extent; x <= cx + extent; x++)

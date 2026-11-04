@@ -21,5 +21,6 @@
     <Compile Include="../SlapPack/src/WiperStalkPixels.cs" Link="WiperStalkPixels.cs" />
     <Compile Include="../SlapPack/src/WiperKnobRotation.cs" Link="WiperKnobRotation.cs" />
     <Compile Include="../SlapPack/src/WindshieldWeatherState.cs" Link="WindshieldWeatherState.cs" />
+    <Compile Include="../SlapPack/src/WindshieldWeatherClock.cs" Link="WindshieldWeatherClock.cs" />
   </ItemGroup>
 </Project>

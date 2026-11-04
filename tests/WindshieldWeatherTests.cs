@@ -11,12 +11,20 @@ internal static class WindshieldWeatherTests
     {
         var field = new WindshieldWeatherState(Opening);
         var motor = new WiperState(); motor.SetSpeed(mode);
+        var clock = new WindshieldWeatherClock();
         for (int i = 0; i < fps * duration; i++)
         {
-            float previous = motor.Sweep;
-            motor.Tick(1f / fps);
-            field.Deposit(1f / fps, rain, snow, speed, 0, 0, false);
-            field.Wipe(previous, motor.Sweep);
+            int steps = (int)Math.Ceiling(120f / fps);
+            for (int s = 0; s < steps; s++)
+            {
+                float previous = motor.Sweep; motor.Tick(1f / fps / steps);
+                clock.Record(1f / fps / steps, previous, motor.Sweep, false);
+            }
+            if (clock.TryStep(out float dt, out _, out float from, out float to))
+            {
+                field.Deposit(dt, rain, snow, speed, 0, 0, false);
+                field.Wipe(from, to);
+            }
         }
         return field;
     }
@@ -92,7 +100,7 @@ internal static class WindshieldWeatherTests
             float a = ClearedAreaMean(off), b = ClearedAreaMean(slow), c = ClearedAreaMean(normal), d = ClearedAreaMean(fast);
             Console.WriteLine("Buildup in swept area (vanilla off/intermittent/continuous; heavy fast): " + a + " / " + b + " / " + c + " / " + d);
             Assert(b < a * 0.3f && c < b, "Selected modes do not progressively reduce buildup.");
-            Assert(c < 0.02f && d < 0.03f, "Continuous/fast failed visibility target.");
+            Assert(WindshieldWeatherOptics.Opacity(c, 0) < 0.16f && WindshieldWeatherOptics.Opacity(d, 0) < 0.16f, "Continuous/fast failed visibility target.");
         });
         check("Washer deposits fluid in dry weather without inventing snow", () =>
         {
@@ -144,6 +152,47 @@ internal static class WindshieldWeatherTests
                 Assert(field.Water[i] >= 0 && field.Water[i] <= 1 && field.Snow[i] >= 0 && field.Snow[i] <= 1, "Invalid field value.");
                 Assert(field.Inside[i] || field.Water[i] + field.Snow[i] == 0, "Precipitation outside glass.");
             }
+        });
+        check("Weather field updates are bounded independently of rendering frame rate", () =>
+        {
+            foreach (int fps in new[] { 30, 60, 144, 240 })
+            {
+                var clock = new WindshieldWeatherClock(); int ticks = 0;
+                for (int i = 0; i < fps * 10; i++)
+                {
+                    clock.Record(1f / fps, 0, 0, false);
+                    if (clock.TryStep(out _, out _, out _, out _)) ticks++;
+                }
+                Assert(ticks >= 199 && ticks <= 200, "Weather ran at render rate: " + fps + "fps -> " + ticks + " ticks.");
+            }
+        });
+        check("Batched clearing retains reversals, consumes each path once and preserves washer duration", () =>
+        {
+            var clock = new WindshieldWeatherClock();
+            clock.Record(0.02f, 0.7f, 1, true);
+            clock.Record(0.02f, 1, 0.9f, false);
+            clock.Record(0.02f, 0.9f, 0.8f, false);
+            Assert(clock.TryStep(out float dt, out float wash, out float from, out float to), "Field step was not due.");
+            Assert(Math.Abs(dt - 0.06f) < 0.0001f && Math.Abs(wash - 1f / 3) < 0.0001f, "Washer duration changed.");
+            Assert(from == 0.7f && to == 1, "Stroke reversal was missed.");
+            Assert(!clock.TryStep(out _, out _, out _, out _), "Field step ran twice.");
+            clock.Record(0.1f, 0, 0, false);
+            Assert(clock.TryStep(out _, out _, out from, out to) && from == to, "Old wipe path was replayed while parked.");
+            clock.Record(5, 0, 1, false);
+            Assert(clock.TryStep(out dt, out _, out _, out _) && dt <= 0.25f, "Hitch created catch-up work.");
+            Assert(!clock.TryStep(out _, out _, out _, out _), "Hitch left a catch-up queue.");
+        });
+        check("No-wiper rain develops substantial obscuration and the setting changes its strength", () =>
+        {
+            var field = Simulate(WiperSpeed.Off, 0.5f, 0, 0, 144, 10);
+            float alpha = 0; int count = 0;
+            for (int i = 0; i < field.Water.Length; i++)
+                if (field.Inside[i]) { alpha += WindshieldWeatherOptics.Opacity(field.Water[i], 0); count++; }
+            alpha /= count;
+            Console.WriteLine("Vanilla rain, 10s with wipers off: mean opacity=" + alpha);
+            Assert(alpha > 0.6f, "Wipers-off rain remained too transparent: " + alpha);
+            Assert(WindshieldWeatherOptics.Opacity(0, 0) == 0, "Dry glass is obscured.");
+            Assert(WindshieldWeatherOptics.Opacity(0.2f, 0, 2) > WindshieldWeatherOptics.Opacity(0.2f, 0, 1), "Obscuration setting has no effect.");
         });
     }
 }

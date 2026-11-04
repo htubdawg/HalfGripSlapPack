@@ -15,11 +15,13 @@ namespace HalfGripSlapPack
         private readonly WindshieldWeatherSource source;
         private readonly CarControllerNew car;
         private readonly MeshRenderer renderer;
-        private float nextUpload;
+        private readonly WindshieldWeatherClock clock = new WindshieldWeatherClock();
+        private readonly float obscuration;
 
-        internal WindshieldWeather(CarControllerNew car, WiperWindshield glass, List<Object> owned, Action<string> warning)
+        internal WindshieldWeather(CarControllerNew car, WiperWindshield glass, List<Object> owned, Action<string> warning, float obscuration)
         {
             this.car = car; this.glass = glass;
+            this.obscuration = obscuration;
             field = new WindshieldWeatherState(glass.Opening);
             source = new WindshieldWeatherSource(warning);
             texture = new Texture2D(WindshieldWeatherState.Width, WindshieldWeatherState.Height, TextureFormat.RGBA32, false)
@@ -36,10 +38,12 @@ namespace HalfGripSlapPack
             renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
         }
 
-        internal WindshieldPrecipitation Read() => source.Read(car);
+        internal void Record(float dt, float previous, float current, bool washing) => clock.Record(dt, previous, current, washing);
 
-        internal void Step(float dt, WindshieldPrecipitation weather, float previous, float current, bool washing)
+        internal void Step()
         {
+            if (!clock.TryStep(out float dt, out float washerFraction, out float previous, out float current)) return;
+            WindshieldPrecipitation weather = source.Read(car);
             Vector3 velocity = car.rb ? car.rb.linearVelocity : Vector3.zero;
             Vector3 relative = car.transform.InverseTransformDirection(weather.Wind - velocity);
             // Project gravity and air onto the real glass, so reversing and crosswind
@@ -47,15 +51,14 @@ namespace HalfGripSlapPack
             Vector3 flow = car.transform.InverseTransformDirection(Vector3.down) * 0.018f + relative * 0.0025f;
             PanePoint planeFlow = glass.ProjectVector(flow);
             float incidence = Mathf.Max(0, -Vector3.Dot(relative, glass.Normal));
-            field.Deposit(dt, weather.Rain, weather.Snow, incidence, planeFlow.X, planeFlow.Y, washing);
+            field.Deposit(dt, weather.Rain, weather.Snow, incidence, planeFlow.X, planeFlow.Y, washerFraction > 0, washerFraction);
             field.Wipe(previous, current);
+            Draw();
         }
 
-        internal void Draw()
+        private void Draw()
         {
             renderer.enabled = glass.Source && glass.Source.gameObject.activeInHierarchy;
-            if (Time.time < nextUpload) return;
-            nextUpload = Time.time + 1f / 20;
             const int width = WindshieldWeatherState.Width;
             for (int k = 0; k < pixels.Length; k++)
             {
@@ -65,9 +68,10 @@ namespace HalfGripSlapPack
                 // each deposit relief without shipping shaders or game textures.
                 float gradient = (k >= width ? field.Water[k - width] : 0) - (k + width < pixels.Length ? field.Water[k + width] : 0);
                 float shine = Mathf.Clamp01(0.46f + gradient * 1.4f + field.Impact[k] * 0.3f);
-                float alpha = Mathf.Clamp01(water * (0.20f + Mathf.Abs(gradient) * 0.5f) + snow * 0.9f + field.Impact[k] * water * 0.12f);
+                float alpha = WindshieldWeatherOptics.Opacity(water, snow, obscuration);
                 float white = snow / Mathf.Max(0.001f, snow + water);
-                pixels[k] = new Color(Mathf.Lerp(shine * 0.8f, 0.88f, white), Mathf.Lerp(shine * 0.9f, 0.93f, white), Mathf.Lerp(shine, 0.96f, white), alpha);
+                pixels[k] = new Color32((byte)(Mathf.Lerp(shine * 0.8f, 0.88f, white) * 255), (byte)(Mathf.Lerp(shine * 0.9f, 0.93f, white) * 255),
+                    (byte)(Mathf.Lerp(shine, 0.96f, white) * 255), (byte)(alpha * 255));
             }
             texture.SetPixels32(pixels); texture.Apply(false, false);
         }
