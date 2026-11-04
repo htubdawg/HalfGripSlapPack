@@ -4,10 +4,11 @@ namespace HalfGripSlapPack
 {
     internal sealed class WindshieldCaptureClock
     {
+        internal const float MaximumHz = 144;
         private readonly double interval;
         private double next;
         private bool active;
-        internal WindshieldCaptureClock(float hz) { interval = 1 / Math.Max(5, Math.Min(30, hz)); }
+        internal WindshieldCaptureClock(float hz) { interval = 1 / Math.Max(5, Math.Min(MaximumHz, hz)); }
         internal bool Due(double now, bool visibleWet)
         {
             if (!visibleWet) { active = false; return false; }

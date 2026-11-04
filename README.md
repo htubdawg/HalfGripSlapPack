@@ -3,7 +3,10 @@ A collection of new things to interact with in your car.
 
 Features: adjustable rear-view mirror, working window cranks, turn signals, and windshield wipers with rain/slush interaction.
 
-## Experimental camera refraction — 0.7.0
+## Experimental camera refraction — 0.7.1
+
+Version 0.7.1 allows `RefractionCaptureHz` from **5 to 144 Hz** in both the config and capture scheduler. The default remains 15.
+For example, set it to 60 or 120 and restart. Actual captures are also limited by the game's frame rate; no catch-up bursts are queued.
 
 On `test/windshield-weather` only; no merge into the wiper-control branch. Version 0.7.0 prototypes a **separate low-resolution camera**
 for water distortion. It defaults to **640 pixels wide** (640×360 at 16:9) and **at most 15 captures/second**, configurable below. The camera
@@ -35,7 +38,7 @@ RefractionStrength = 0.008
 RefractionFlipY = false
 ```
 
-Restart after changing. Width allows 320–1280, rate 5–30 Hz, strength 0.001–0.02. Set `RefractionEnabled = false` to compare against 0.6.2-style
+Restart after changing. Width allows 320–1280, rate 5–144 Hz, strength 0.001–0.02. Set `RefractionEnabled = false` to compare against 0.6.2-style
 water tint. The existing `RainObscuration` controls the tint fallback/highlights; `RefractionStrength` controls the ripple sampling offset.
 If the captured scenery is upside down on your graphics backend, set `RefractionFlipY = true` and restart.
 

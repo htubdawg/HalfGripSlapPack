@@ -21,7 +21,7 @@ namespace HalfGripSlapPack
             Enabled = config.Bind("Wipers", "RefractionEnabled", true, "Experimental low-resolution camera refraction on wet glass. Restart after changing. False restores the tint overlay.");
             FlipY = config.Bind("Wipers", "RefractionFlipY", false, "Flip the captured image vertically if required by the graphics backend. Restart after changing.");
             Width = config.Bind("Wipers", "RefractionCaptureWidth", 640, new ConfigDescription("Capture width in pixels; height follows cockpit aspect. Restart after changing.", new AcceptableValueRange<int>(320, 1280)));
-            Hz = config.Bind("Wipers", "RefractionCaptureHz", 15f, new ConfigDescription("Maximum world captures per second. Lower is cheaper but lags more. Restart after changing.", new AcceptableValueRange<float>(5, 30)));
+            Hz = config.Bind("Wipers", "RefractionCaptureHz", 15f, new ConfigDescription("Maximum world captures per second (5–144), limited by the game's frame rate. Lower is cheaper but lags more. Restart after changing.", new AcceptableValueRange<float>(5, WindshieldCaptureClock.MaximumHz)));
             Strength = config.Bind("Wipers", "RefractionStrength", 0.008f, new ConfigDescription("Ripple offset as a fraction of the view. Restart after changing.", new AcceptableValueRange<float>(0.001f, 0.02f)));
         }
     }
