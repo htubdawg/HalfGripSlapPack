@@ -1,10 +1,10 @@
-# Maintenance update 0.8.8 — author credit and clean mod package
+# Maintenance update 0.8.9 — author credit and clean mod package
 
-Corrects SlapPack/mod.json author to `Claude - Oretsej`, matching the current MiniMap, Stereo, ProcTrack and Helicopter manifests. Adds the exact established credit to CLAUDE.md so future work preserves it.
+Corrects SlapPack/mod.json author to `Codex - Oretsej`, retaining the creator credit used by the other mods while naming the assistant actually used for Slap Pack. Adds the exact established credit to CLAUDE.md so future work preserves it.
 
 Moves the compile-check project from SlapPack/SlapPack.csproj to repository-root SlapPack.csproj. Explicit source includes restrict compilation to SlapPack/src/**/*.cs; the default HalfGripRefs path and build documentation follow the move. Build outputs are generated outside the installable mod directory. SlapPack/ now contains only mod.json and runtime src/.
 
-Manifest, README and project version are 0.8.8. Compile check passes with zero warnings/errors; all 159 existing model/control tests pass. Package layout and manifest/project/README version consistency are checked. No gameplay/rendering code changed.
+Manifest, README and project version are 0.8.9. Compile check passes with zero warnings/errors; all 159 existing model/control tests pass. Package layout and manifest/project/README version consistency are checked. No gameplay/rendering code changed.
 
 ---
 

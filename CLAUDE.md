@@ -12,5 +12,5 @@
 
 - Increment `SlapPack/mod.json` for every player-facing behavior update, including test branches. Keep the README version and development project Version aligned so installed test builds are identifiable.
 - Preserve author/credit metadata exactly unless the user explicitly supplies a replacement. Never infer display credit from a repository owner, Git identity or tool account.
-- The established mod author credit is `Claude - Oretsej`, matching MiniMap, Stereo, ProcTrack and Helicopter. Preserve that exact text.
+- Slap Pack author credit is `Codex - Oretsej`: Codex is the assistant used for this mod; Oretsej is the creator credit. Preserve this exact text. Do not copy another assistant's name from other mods.
 - Keep the installable `SlapPack/` folder limited to `mod.json` and runtime `src/`; development projects and generated build outputs belong outside it. The compile-check project is repository-root `SlapPack.csproj`.
