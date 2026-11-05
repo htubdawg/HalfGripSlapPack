@@ -1,6 +1,6 @@
 # Slap Pack for Half Grip
 
-**Version 0.8.7** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
+**Version 0.8.8** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
 
 More things to grab in your car: adjust the rear-view mirror, wind the windows down, use the turn signals, and clear rain and slush
 with working windshield wipers. Rain builds up on the windshield and distorts the view until you wipe it away. Side and rear windows get lighter, self-clearing weather.
@@ -25,7 +25,7 @@ click, and cancel after you complete the indicated turn. The wipers finish their
 
 ### Rain and snow
 
-Version **0.8.7** sets the new-config wiper stalk angle to **24°** and includes a shallow wet layer and stronger beading/runoff, with much more activity on the rear glass. The overlays use a render layer included by both the cockpit and existing rear-view cameras. Confirm the mod manager or startup log shows **Slap Pack 0.8.7** after updating the test branch.
+Version **0.8.8** corrects the author credit to **Claude - Oretsej**, keeps development files outside the installable mod folder, sets the new-config wiper stalk angle to **24°** and includes a shallow wet layer and stronger beading/runoff, with much more activity on the rear glass. The overlays use a render layer included by both the cockpit and existing rear-view cameras. Confirm the mod manager or startup log shows **Slap Pack 0.8.8** after updating the test branch.
 
 On the windshield, rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
 The blades clear their swept area, leaving water around the edges. Water bends the view through the glass using the current frame,
@@ -83,7 +83,7 @@ Half Grip Demo\
 ```
 
 `<game>` is usually `C:\Program Files (x86)\Steam\steamapps\common\Half Grip Demo`.
-You do not need the repository's tests, documentation, `.csproj`, `bin` or `obj` folders to play.
+The `SlapPack` folder contains only `mod.json` and `src`. Development files, including the root `SlapPack.csproj`, stay outside the installed mod.
 
 ## Settings
 

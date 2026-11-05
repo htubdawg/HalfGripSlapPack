@@ -9,13 +9,13 @@ Use the .NET 8 SDK, a HalfGripRefs checkout with private game assemblies, and a 
 From the repository root:
 
 ```bash
-dotnet build SlapPack/SlapPack.csproj -c Release \
+dotnet build SlapPack.csproj -c Release \
   -p:HalfGripRefsDir=/path/to/HalfGripRefs \
   -p:HalfGripToolsDll=/path/to/HalfGripTools.dll
 dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 ```
 
-HalfGripTools compiles `SlapPack/src` at game startup. The project file is a development compile check; it is not required for installation.
+HalfGripTools compiles `SlapPack/src` at game startup. The repository-root SlapPack.csproj is a development compile check and explicitly includes only SlapPack/src/**/*.cs. Its bin/obj output stays at the repository root; no development project or build output belongs inside the installable SlapPack folder.
 Keep private game DLLs, assets and diagnostic texture reports outside the repository and distribution.
 
 The compile check uses HalfGripRefs 0.419 / Unity 6000.3.22f1 and HalfGripTools 1.0.6. All 138 model/control tests pass. They cover mirror

@@ -11,3 +11,6 @@
 - Update STATUS.md with the final behavior, validation and remaining runtime checks.
 
 - Increment `SlapPack/mod.json` for every player-facing behavior update, including test branches. Keep the README version and development project Version aligned so installed test builds are identifiable.
+- Preserve author/credit metadata exactly unless the user explicitly supplies a replacement. Never infer display credit from a repository owner, Git identity or tool account.
+- The established mod author credit is `Claude - Oretsej`, matching MiniMap, Stereo, ProcTrack and Helicopter. Preserve that exact text.
+- Keep the installable `SlapPack/` folder limited to `mod.json` and runtime `src/`; development projects and generated build outputs belong outside it. The compile-check project is repository-root `SlapPack.csproj`.

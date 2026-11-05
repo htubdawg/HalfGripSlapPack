@@ -1,8 +1,8 @@
 {
   "id": "slappack",
   "name": "Slap Pack",
-  "version": "0.8.7",
-  "author": "htubdawg",
+  "version": "0.8.8",
+  "author": "Claude - Oretsej",
   "description": "Adjustable mirror, working window cranks, turn signals, manual windshield wipers, and light self-clearing rain/snow on side and rear windows. Supports vanilla and Open World weather.",
   "gameVersion": "0.418",
   "tools": "1.0.6"
