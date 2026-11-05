@@ -1,14 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>0.8.7</Version>
+    <Version>0.8.9</Version>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>10.0</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <HalfGripRefsDir Condition="'$(HalfGripRefsDir)' == ''">$(MSBuildThisFileDirectory)../../HalfGripRefs</HalfGripRefsDir>
+    <HalfGripRefsDir Condition="'$(HalfGripRefsDir)' == ''">$(MSBuildThisFileDirectory)../HalfGripRefs</HalfGripRefsDir>
     <ManagedDir>$(HalfGripRefsDir)/game/HalfGrip_Data/Managed</ManagedDir>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="SlapPack/src/**/*.cs" />
     <Reference Include="$(ManagedDir)/*.dll" Exclude="$(ManagedDir)/mscorlib.dll;$(ManagedDir)/netstandard.dll;$(ManagedDir)/System*.dll" />
     <Reference Include="$(HalfGripRefsDir)/game/BepInEx/core/BepInEx.dll" />
     <Reference Include="$(HalfGripRefsDir)/game/BepInEx/core/0Harmony.dll" />
