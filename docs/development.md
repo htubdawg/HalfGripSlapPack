@@ -72,3 +72,30 @@ reference assets and must stay outside the repository and distribution. Shared m
 Changes the new-config mirror FOV from 22° to 16° and rewrites the player README around ProcTrack's features/install/settings structure.
 Existing BepInEx values remain intact; updating users can set `[Mirror] MirrorFOV = 16` explicitly. The default change does not alter the
 refraction or performance pass.
+
+
+## Side/rear weather
+
+`WindowWeatherInstaller` owns unwiped glass effects separately from `WiperInstaller`. `WindowWeatherSurface` selects connected coplanar side/rear triangles and retains their footprint; `WindowWeatherState` simulates sparse, bounded deposits with no base film or windshield clearing. Each patch has a 64×32 point-filtered texture, updated at up to 20 Hz. Source triangles are de-duplicated before two-sided rendering.
+
+`WindowInstaller.MovingPane` maps matching source indices to the door's open fraction. Weather geometry moves with that glass, clips against its aperture and keeps UVs in glass coordinates; fresh deposition is restricted to the exposed part. The original glass meshes/materials remain unchanged. No refraction camera/pass is added for side or rear windows.
+
+The expanded model suite has 149 passing tests. Live Unity rendering, mesh discovery on both bodies, mirror visibility and frame-time cost still require the runtime checks in STATUS.md.
+
+### Test build 0.8.4 visibility correction
+
+The game intentionally disables native glass MeshRenderers in cockpit view (`CameraSwitch.SetWindshields(false)`). Owned precipitation follows source GameObject activation, not the native renderer's enabled flag. Using that flag hid the initial side/rear effect in the cockpit. Manifest, README and development assembly version identify this correction as 0.8.4; live rendering remains to be verified.
+
+### Test build 0.8.5 runoff trails
+
+A bounded set of water heads stamps traveled segments into a fading 64×32 trail field. Side heads move with stronger projected gravity/airflow; rear heads remain slower and fewer. Trails remain fixed to the glass and decay instead of repeatedly undergoing bilinear advection, retaining visible streaks. Higher water contrast and localized opacity replace the faint isolated dots reported in 0.8.4. No scene sampling or extra camera is added.
+
+The 155-test suite includes connected-streak, sustained-coverage, airflow-reversal and trail-clearing checks. The local caps are now 32% side / 24% rear; typical vanilla side mean opacity in the deterministic model is about 1.7%. Game appearance and native rendering cost still need playtesting.
+
+### Test build 0.8.6 rear/mirror update
+
+A thin spatially varying rain layer complements the discrete beads and fading trails; natural drying bounds it without wipers. Rear impact rate, bead probability, trail width and flow are increased. Local caps are 40% side / 36% rear; deterministic vanilla means are approximately 4.8% / 3.8%. This continues to use transparent world overlays rather than adding another scene-color copy.
+
+`WindowWeatherLayer.Select` keeps owned overlays in the intersection of the cockpit and existing mirror camera masks, preferring their source layer. Only the owned overlay layer changes. A beginCameraRendering callback rechecks masks before culling and optionally reports wet rear-triangle samples in the mirror viewport and its render-target size. No auxiliary camera, source-layer edit or original-camera modification is introduced. Callbacks are removed on disable/unload.
+
+The 159-test model suite includes rear visibility/coverage and mirror-layer selection. Diagnostics check CPU projection/layer eligibility; live mirror pixels, depth occlusion and Unity performance still require playtesting.
