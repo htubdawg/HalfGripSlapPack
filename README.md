@@ -1,6 +1,6 @@
 # Slap Pack for Half Grip
 
-**Version 0.8.6** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
+**Version 0.8.7** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
 
 More things to grab in your car: adjust the rear-view mirror, wind the windows down, use the turn signals, and clear rain and slush
 with working windshield wipers. Rain builds up on the windshield and distorts the view until you wipe it away. Side and rear windows get lighter, self-clearing weather.
@@ -25,7 +25,7 @@ click, and cancel after you complete the indicated turn. The wipers finish their
 
 ### Rain and snow
 
-Version **0.8.6** adds a shallow wet layer and stronger beading/runoff, with much more activity on the rear glass. The overlays use a render layer included by both the cockpit and existing rear-view cameras. Confirm the mod manager or startup log shows **Slap Pack 0.8.6** after updating the test branch.
+Version **0.8.7** sets the new-config wiper stalk angle to **24°** and includes a shallow wet layer and stronger beading/runoff, with much more activity on the rear glass. The overlays use a render layer included by both the cockpit and existing rear-view cameras. Confirm the mod manager or startup log shows **Slap Pack 0.8.7** after updating the test branch.
 
 On the windshield, rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
 The blades clear their swept area, leaving water around the edges. Water bends the view through the glass using the current frame,
@@ -104,6 +104,7 @@ then restart. Existing saved settings are kept when updating: to use the new mir
 | `TurnSignals.ClickSound` / `ClickVolume` | `true` / `0.35` | Relay sound and volume |
 | `Wipers.Enabled` | `true` | Enables wipers and their controls |
 | `Wipers.WeatherEffects` | `true` | Enables windshield rain/slush buildup and wiping |
+| `Wipers.StalkUpAngle` | `24` | Upward neutral stalk angle in degrees. Existing saved values are retained |
 | `Wipers.IntermittentPause` | `2.5` | Seconds parked between wipes in mode I |
 | `Wipers.RainObscuration` | `1` | Strength of windshield water obscuration |
 | `Wipers.RefractionEnabled` | `true` | Water distortion; disabling it keeps the tint overlay |

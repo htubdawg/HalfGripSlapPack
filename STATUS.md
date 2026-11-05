@@ -1,3 +1,11 @@
+# Test update 0.8.7 — default wiper stalk angle
+
+Changes the new-config default for [Wipers] StalkUpAngle from 18 to 24 degrees, as requested. Existing saved config values are preserved; set StalkUpAngle = 24 explicitly to apply it to an existing config. Manifest, README and development project version are 0.8.7. The existing PR to main includes this update.
+
+Validation: compile check passes with zero warnings/errors; all 159 model/control tests pass. No weather or mirror behavior is changed. Live stalk placement/shifter clearance at the new default still needs an in-game check.
+
+---
+
 # Test update 0.8.6 — stronger rear weather and mirror visibility checks
 
 The user reports improved side streaks but weak rear activity and requests a look closer to the front windshield, including visibility in the mirror. This update adds a shallow, spatially varying rain layer with continuous natural drainage/drying, stronger individual beads and broader trails. The rear is no longer reduced at every stage: impact rate, head probability, active-head capacity, trail width and flow are increased. Both surfaces retain bounded water and natural clearing without wipers; rear tangential flow remains slower than side flow.
