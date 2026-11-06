@@ -1,3 +1,41 @@
+# Test update 0.8.12 — held 3D gun depth occlusion
+
+The player confirmed the prior transparent-queue change did not fix the held 3D weapon and supplied a screenshot. The aim model is distinct from the hanging cockpit sprite and its authored geometry can extend beyond the windshield. An opaque model rendered before the glass still loses the depth test to nearer glass, so queue 2999 alone cannot solve this case.
+
+HeldGunWeatherOcclusion selects only active Gun.aimModel mesh/skinned renderers belonging to the current player's fpvCamera, with enabled renderers, included layers and solid/cutout materials. It queues a depth-only RenderGraph pass after sky, immediately before the existing refraction pass. The native material's enabled DepthOnly pass retains its cutout texture, material properties and vertex deformation. Transparent attachments, sprites, world weapons and inactive models are excluded. A missing/disabled depth pass warns once per material rather than masking a bounding rectangle.
+
+The pass preserves projection X/Y/W, compressing only Z about the original near plane by 0.001. This retains the exact projected silhouette and near clipping while putting the depth silhouette in front of the glass. The gun's existing color remains untouched. Both the later refraction mesh and ordinary tint/slush overlays then fail depth inside that silhouette. It also works when refraction is disabled: attachment eligibility is based on actual owned windshield or side/rear weather, independent of refraction. Uses the existing camera and depth attachment, with explicit read/write dependency and scoped command-matrix restoration in finally. No camera properties, gun transforms/fire points, shared materials/meshes, shader keywords or light settings are changed, and there is no extra camera or previous-frame copy. Unload unsubscribes the callback before tearing down weather; custom chassis remain excluded.
+
+Manifest, README and project version are 0.8.12. Compile check against HalfGripRefs 0.419 / Unity 6000.3.22f1 and HalfGripTools 1.0.6 passes with zero warnings/errors. All 170 tests pass, including new perspective/off-axis silhouette, near clipping and ordinary/reversed GPU depth conversion checks. Inspected the supplied URP RenderGraph camera setup to use the same CPU projection convention for SetViewProjectionMatrices. CPU tests and command submission do not establish final GPU pixels.
+
+Runtime checks: reproduce the supplied held-shotgun overlap in rain and snow, refraction enabled and disabled; test all stock 3D guns, aiming at screen edges, recoil/spin, moving parts, release and gun swaps. Include custom guns exposing Gun.aimModel and enabled DepthOnly materials, both stock bodies, side glass, camera changes, foreground particles and any depth-based postprocessing. Verify water refraction near weapon edges does not smear sampled weapon color outward. Preserve ceiling sprites, crosshair and muzzle flashes. Custom materials without a native enabled depth pass are not supported by this mask and report a warning. Verbose diagnostics report selected submesh draws, graph records and depth submissions every five seconds; these do not prove rasterization. No live game runtime is available in this environment, so the screenshot's exact GPU result remains unverified.
+
+---
+
+# Test update 0.8.11 — exclude custom chassis
+
+Every installer now checks a shared chassis gate before attachment and before retaining an existing binding. Mirror interaction, window cranks/moving glass, turn signals/relay/lamps, wipers/washer and all precipitation are removed when a custom chassis is equipped. Geometry diagnostics also skip custom chassis. Late-update weather/control work and refraction camera submission check eligibility too. Returning to an original chassis allows normal rebinding, including resetting the window installer's attempted-model latch so the same cabin can be fitted again.
+
+During Mod.Load, before HalfGripTools 1.0.6 injects registered mod items, ChassisCompatibility captures original ChassisUpgrade IDs from ItemCatalog.Instance. Runtime DontSave clones are excluded from this snapshot (including on reload). It never refreshes from the later expanded catalog. Each known PlayerLoadout is checked against those IDs, including chassis-category items not subclassing ChassisUpgrade. Thus Helicopter (`helicopter.heli`), Dacia Body (`daciabody.legendary`) and other unrecognized chassis are excluded without dependencies on their assemblies, names, skins or cockpit hierarchy. Other categories of mod item remain supported. An unknown loadout waits; an unavailable/empty original catalog disables additions with a warning. This targets chassis items; unrelated mods that directly mutate original vehicle geometry without equipping a chassis item have no identity this gate can inspect.
+
+Manifest, README and project version are 0.8.11. Compile check: zero warnings/errors. All 167 tests pass, including eight new tests linking the actual compatibility gate against narrow catalog/loadout/Unity object stubs. They cover base/stock/copy support, Helicopter/Dacia/future custom rejection, catalog injection and reload, refit transitions, non-chassis items, category-only chassis and unavailable metadata. They do not execute Unity installers or verify object destruction/restoration in-game.
+
+Runtime checks: with both mods installed but not equipped, confirm stock additions still work. Equip Helicopter and Dacia before race start and during garage refits, confirm all Slap Pack visuals, interactions, relay audio and weather are absent, then refit stock and confirm reattachment. Repeat with both stock bodies, stock chassis upgrades, scene changes and mod disable/reload. Check original mirror hierarchy/camera state, glass materials and cockpit controls restore cleanly, particularly when changing chassis while holding a Slap Pack control. Retest the 0.8.10 gun/weather overlap correction below.
+
+---
+
+# Test update 0.8.10 — weather/gun draw order
+
+The player reports windshield weather drawing over guns. Windshield and side/rear tint/slush materials previously used queue 3001, after ordinary transparent materials (3000). Because transparent gun surfaces can render without writing depth, this forces the weather over those surfaces even when the gun should be in front.
+
+Both owned precipitation paths now use `WindowMaterials.Precipitation`, with queue `RenderQueue.Transparent - 1` (2999). This remains inside URP's transparent range, keeps alpha blending and the stock depth test with depth writes off, and draws before ordinary transparent guns/hands. The same-frame refraction pass already runs after sky and before transparents and is unchanged. Original game materials, gun transforms, camera settings, mirror layer selection and weather simulation remain unchanged.
+
+Manifest, README and development project version are 0.8.10. Validation: compile against HalfGripRefs 0.419 / Unity 6000.3.22f1 and HalfGripTools 1.0.6 passes with zero warnings/errors; all 159 existing model/control tests pass. These checks do not execute Unity/GPU ordering or prove the visual fix.
+
+Runtime checks: compare wet windshield overlap with guns resting, held, aimed, firing, reloading and spinning; include stock guns and optional gun mods. Check rain and snow with refraction on/off, look sideways through wet glass, inspect rear weather in the mirror and try both bodies. Confirm opaque weapon parts still occlude the glass according to depth. If an aimed model physically extends past the glass or uses a custom earlier render queue, this queue correction may not resolve that overlap; inspect that case in-game before changing weapon placement or rendering.
+
+---
+
 # Maintenance update 0.8.9 — author credit and clean mod package
 
 Corrects SlapPack/mod.json author to `Codex - Oretsej`, retaining the creator credit used by the other mods while naming the assistant actually used for Slap Pack. Adds the exact established credit to CLAUDE.md so future work preserves it.
