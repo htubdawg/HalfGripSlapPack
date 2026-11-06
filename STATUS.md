@@ -1,3 +1,15 @@
+# Test update 0.8.11 — exclude custom chassis
+
+Every installer now checks a shared chassis gate before attachment and before retaining an existing binding. Mirror interaction, window cranks/moving glass, turn signals/relay/lamps, wipers/washer and all precipitation are removed when a custom chassis is equipped. Geometry diagnostics also skip custom chassis. Late-update weather/control work and refraction camera submission check eligibility too. Returning to an original chassis allows normal rebinding, including resetting the window installer's attempted-model latch so the same cabin can be fitted again.
+
+During Mod.Load, before HalfGripTools 1.0.6 injects registered mod items, ChassisCompatibility captures original ChassisUpgrade IDs from ItemCatalog.Instance. Runtime DontSave clones are excluded from this snapshot (including on reload). It never refreshes from the later expanded catalog. Each known PlayerLoadout is checked against those IDs, including chassis-category items not subclassing ChassisUpgrade. Thus Helicopter (`helicopter.heli`), Dacia Body (`daciabody.legendary`) and other unrecognized chassis are excluded without dependencies on their assemblies, names, skins or cockpit hierarchy. Other categories of mod item remain supported. An unknown loadout waits; an unavailable/empty original catalog disables additions with a warning. This targets chassis items; unrelated mods that directly mutate original vehicle geometry without equipping a chassis item have no identity this gate can inspect.
+
+Manifest, README and project version are 0.8.11. Compile check: zero warnings/errors. All 167 tests pass, including eight new tests linking the actual compatibility gate against narrow catalog/loadout/Unity object stubs. They cover base/stock/copy support, Helicopter/Dacia/future custom rejection, catalog injection and reload, refit transitions, non-chassis items, category-only chassis and unavailable metadata. They do not execute Unity installers or verify object destruction/restoration in-game.
+
+Runtime checks: with both mods installed but not equipped, confirm stock additions still work. Equip Helicopter and Dacia before race start and during garage refits, confirm all Slap Pack visuals, interactions, relay audio and weather are absent, then refit stock and confirm reattachment. Repeat with both stock bodies, stock chassis upgrades, scene changes and mod disable/reload. Check original mirror hierarchy/camera state, glass materials and cockpit controls restore cleanly, particularly when changing chassis while holding a Slap Pack control. Retest the 0.8.10 gun/weather overlap correction below.
+
+---
+
 # Test update 0.8.10 — weather/gun draw order
 
 The player reports windshield weather drawing over guns. Windshield and side/rear tint/slush materials previously used queue 3001, after ordinary transparent materials (3000). Because transparent gun surfaces can render without writing depth, this forces the weather over those surfaces even when the gun should be in front.

@@ -28,6 +28,8 @@ orientation, depth/occlusion, material availability, pause/focus loss, washer cy
 
 ## Rendering and performance
 
+Version 0.8.11 restricts attachments to original chassis IDs captured from the item catalog during Mod.Load, before HalfGripTools injects mod items. Runtime DontSave clones are excluded. The live PlayerLoadout must be known, and every equipped chassis must match the original snapshot. All installers remove their owned additions when eligibility is lost and can rebind after a stock refit; window attachment retries reset on exclusion. This does not depend on custom cockpit names or whether other mods are installed. The test suite links the actual gate against catalog/loadout stubs; live refit cleanup and restoration still require a game test.
+
 The existing `car.fpvCamera` enqueues a RenderGraph pass after opaque objects and sky. A point-filtered built-in Blitter downsample feeds
 a dependent water-mesh draw before transparent rain/cockpit/UI rendering. Resources and read-only depth dependencies are explicit. There
 is no second camera, render request, capture timer, previous-frame scene image, renderer-feature mutation or CPU image readback.

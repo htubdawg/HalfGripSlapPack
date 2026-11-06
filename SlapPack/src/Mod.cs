@@ -11,6 +11,7 @@ namespace HalfGripSlapPack
         public override void Load(ModContext ctx)
         {
             ModLog.Initialize(ctx.Config, ctx.Log);
+            ChassisCompatibility.Initialize(message => ctx.Log.LogWarning(message));
             ctx.PatchAll();
             host = new GameObject("SlapPack.Mirrors");
             Object.DontDestroyOnLoad(host);

@@ -6,6 +6,8 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+	<Compile Include="../SlapPack/src/StockChassisPolicy.cs" Link="StockChassisPolicy.cs" />
+	<Compile Include="../SlapPack/src/ChassisCompatibility.cs" Link="ChassisCompatibility.cs" />
     <Compile Remove="WeatherApi.Integration/**/*.cs" />
     <Compile Include="../SlapPack/src/OptionalWeatherApi.cs" Link="OptionalWeatherApi.cs" />
     <Compile Include="../SlapPack/src/MirrorAdjustment.cs" Link="MirrorAdjustment.cs" />

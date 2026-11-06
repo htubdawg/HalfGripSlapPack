@@ -38,6 +38,7 @@ namespace HalfGripSlapPack
 		private void Update()
 		{
 			if (context == null) return;
+			if (!ChassisCompatibility.AllowsAdditions) { RemoveWeather(); return; }
 			if (!enabledWeather.Value) { RemoveWeather(); return; }
 			if (Time.unscaledTime < nextScan) return;
 			nextScan = Time.unscaledTime + 1;
@@ -83,6 +84,7 @@ namespace HalfGripSlapPack
 
 		private void LateUpdate()
 		{
+			if (!ChassisCompatibility.AllowsAdditions) { RemoveWeather(); return; }
 			if (!car || source == null || surfaces.Count == 0 || Time.timeScale <= 0) return;
 			elapsed += Time.deltaTime;
 			if (elapsed < 0.05f) return;
@@ -110,6 +112,7 @@ namespace HalfGripSlapPack
 		/// <summary>Checks the actual existing mirror view immediately before URP culls its transparent geometry.</summary>
 		private void BeginCamera(ScriptableRenderContext renderContext, Camera camera)
 		{
+			if (!ChassisCompatibility.AllowsAdditions) { RemoveWeather(); return; }
 			if (!car || !camera || (camera != car.fpvCamera && camera != mirrorCamera) || surfaces.Count == 0) return;
 			foreach (WindowWeatherSurface surface in surfaces)
 				surface.IncludeMirror(car.fpvCamera, mirrorCamera, warning);

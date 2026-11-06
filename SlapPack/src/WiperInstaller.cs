@@ -46,6 +46,7 @@ namespace HalfGripSlapPack
 		private void Update()
 		{
 			if (context == null) return;
+			if (!ChassisCompatibility.AllowsAdditions) { RemoveWipers(); return; }
 			if (!enableWipers.Value) { RemoveWipers(); return; }
 			if (car && link && stalk && cameras && link.sw && link.sw.wheel)
 			{
@@ -136,6 +137,7 @@ namespace HalfGripSlapPack
 
 		private void LateUpdate()
 		{
+			if (!ChassisCompatibility.AllowsAdditions) { RemoveWipers(); return; }
 			if (!car || state == null) return;
 			if (Time.timeScale <= 0) return;
 			if (weather == null) state.Tick(Time.deltaTime);
