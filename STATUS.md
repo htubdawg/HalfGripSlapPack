@@ -1,3 +1,15 @@
+# Test update 0.8.10 — weather/gun draw order
+
+The player reports windshield weather drawing over guns. Windshield and side/rear tint/slush materials previously used queue 3001, after ordinary transparent materials (3000). Because transparent gun surfaces can render without writing depth, this forces the weather over those surfaces even when the gun should be in front.
+
+Both owned precipitation paths now use `WindowMaterials.Precipitation`, with queue `RenderQueue.Transparent - 1` (2999). This remains inside URP's transparent range, keeps alpha blending and the stock depth test with depth writes off, and draws before ordinary transparent guns/hands. The same-frame refraction pass already runs after sky and before transparents and is unchanged. Original game materials, gun transforms, camera settings, mirror layer selection and weather simulation remain unchanged.
+
+Manifest, README and development project version are 0.8.10. Validation: compile against HalfGripRefs 0.419 / Unity 6000.3.22f1 and HalfGripTools 1.0.6 passes with zero warnings/errors; all 159 existing model/control tests pass. These checks do not execute Unity/GPU ordering or prove the visual fix.
+
+Runtime checks: compare wet windshield overlap with guns resting, held, aimed, firing, reloading and spinning; include stock guns and optional gun mods. Check rain and snow with refraction on/off, look sideways through wet glass, inspect rear weather in the mirror and try both bodies. Confirm opaque weapon parts still occlude the glass according to depth. If an aimed model physically extends past the glass or uses a custom earlier render queue, this queue correction may not resolve that overlap; inspect that case in-game before changing weapon placement or rendering.
+
+---
+
 # Maintenance update 0.8.9 — author credit and clean mod package
 
 Corrects SlapPack/mod.json author to `Codex - Oretsej`, retaining the creator credit used by the other mods while naming the assistant actually used for Slap Pack. Adds the exact established credit to CLAUDE.md so future work preserves it.

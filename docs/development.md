@@ -51,6 +51,8 @@ appearance before the optimization; native split-stream rendering and actual fra
 
 ## Refraction diagnostics
 
+In 0.8.10, windshield and side/rear precipitation tint/slush materials use transparent queue 2999 instead of 3001. They draw before ordinary transparent gun/hand surfaces (3000), which may not write depth. Stock depth testing and alpha blending are retained. The refraction pass still precedes transparents. Verify overlap in-game with both refraction modes; the CPU model suite cannot validate GPU ordering, and gun geometry extending beyond the glass needs a separate runtime diagnosis.
+
 For a targeted test, enable `VerboseLogging` under `[Diagnostics]`, retain `RefractionEnabled = true` under `[Wipers]`, and restart.
 Five-second snapshots report callback/queue/record/copy/draw counts, last draw frame, copy size, visible wet samples and offsets in scene-copy
 texels. Counts prove command submission, not rasterized pixels. Stream setup reports original/optimized upload strides when it changes the
