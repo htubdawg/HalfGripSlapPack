@@ -242,6 +242,7 @@ internal static class Program
         WindowWeatherTests.Run(Check);
         OptionalWeatherApiTests.Run(Check);
 		ChassisCompatibilityTests.Run(Check);
+		HeldGunDepthTests.Run(Check);
         Console.WriteLine(passed + " tests passed.");
     }
 

@@ -25,6 +25,7 @@ namespace HalfGripSlapPack
 		private int signature;
 		private float nextMirrorDiagnostic;
 		private bool subscribed;
+		internal bool HasWeather(CarControllerNew target) => car == target && surfaces.Count > 0;
 
 		internal void Initialize(ModContext ctx, WindowInstaller windows)
 		{

@@ -25,6 +25,7 @@ namespace HalfGripSlapPack
 		private readonly List<Object> owned = new List<Object>(), bladeOwned = new List<Object>();
 		private float nextScan;
 		private int glassSignature;
+		internal bool HasWeather(CarControllerNew target) => car == target && weather != null;
 
 		internal void Initialize(ModContext ctx)
 		{
