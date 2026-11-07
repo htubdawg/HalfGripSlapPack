@@ -79,12 +79,13 @@ Half Grip Demo\
 └── BepInEx\
     └── HalfGripMods\
         └── SlapPack\
+            ├── icon.png
             ├── mod.json
             └── src\
 ```
 
 `<game>` is usually `C:\Program Files (x86)\Steam\steamapps\common\Half Grip Demo`.
-The `SlapPack` folder contains only `mod.json` and `src`. Development files, including the root `SlapPack.csproj`, stay outside the installed mod.
+The `SlapPack` folder contains only `icon.png`, `mod.json` and `src`. Development files, including the root `SlapPack.csproj`, stay outside the installed mod.
 
 ## Settings
 
