@@ -1,6 +1,6 @@
-# Icon — 0.8.13 unchanged
+# Icon — 0.8.14
 
-Adds `SlapPack/icon.png` (128×128 pixel art at 2×, like the other jMods icons: a red windshield in the rain with the wiper's swept arc, the rear-view mirror and a lit turn-signal arrow) and `"icon": "icon.png"` in `mod.json`, so the HalfGripTools mod manager shows a picture for Slap Pack. The owner asked for no version bump. README layout and CLAUDE.md's installable-folder rule list the icon. No code change, so the compile check and tests were not rerun; check in game that the picture shows in the mod manager.
+Adds `SlapPack/icon.png` (128×128 pixel art at 2×, like the other jMods icons: a red windshield in the rain with the wiper's swept arc, the rear-view mirror and a lit turn-signal arrow) and `"icon": "icon.png"` in `mod.json`, so the HalfGripTools mod manager shows a picture for Slap Pack. Manifest, README and project version are 0.8.14. README layout and CLAUDE.md's installable-folder rule list the icon. No code change, so the compile check and tests were not rerun; check in game that the picture shows in the mod manager.
 
 ---
 
