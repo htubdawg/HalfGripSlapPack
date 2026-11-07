@@ -1,6 +1,6 @@
 # Open World WeatherView v1 integration
 
-The public publisher is available on [claude/nifty-babbage-6o4kay](https://github.com/htubdawg/HalfGripOpenWorld/tree/claude/nifty-babbage-6o4kay), since Open World 0.24.0. SlapPack 0.8.1+ consumes this contract without a compile-time reference to Open World. No upstream branch changes or merges are made here.
+Open World publishes this API in its releases since 0.24.0 (`OpenWorld/src/WeatherView.cs` on its `main`; checked against 0.26.1). SlapPack 0.8.1+ consumes this contract without a compile-time reference to Open World.
 
 `HalfGripOpenWorld.WeatherView.ApiVersion` is a public static `int` getter returning 1. SlapPack validates that version and binds this public method once:
 
