@@ -1,6 +1,6 @@
 # Slap Pack for Half Grip
 
-**Version 0.8.12** · for Half Grip Demo 0.418 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
+**Version 0.8.13** · for Half Grip Demo 0.419 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
 
 More things to grab in your car: adjust the rear-view mirror, wind the windows down, use the turn signals, and clear rain and slush
 with working windshield wipers. Rain builds up on the windshield and distorts the view until you wipe it away. Side and rear windows get lighter, self-clearing weather.
@@ -27,7 +27,7 @@ click, and cancel after you complete the indicated turn. The wipers finish their
 
 ### Rain and snow
 
-Version **0.8.12** adds depth occlusion for the **held 3D gun**, whose model can extend past the windshield. Its mesh silhouette blocks glass tint/slush and refraction without moving the gun or its firing point. This also applies with refraction disabled. The stock-chassis restriction remains. Confirm the mod manager or startup log shows **Slap Pack 0.8.12** when testing.
+Version **0.8.13** is for game 0.419. Slap Pack now also works in the **tutorial**, where 0.8.11–0.8.12 stayed off. Version **0.8.12** added depth occlusion for the **held 3D gun**, whose model can extend past the windshield. Its mesh silhouette blocks glass tint/slush and refraction without moving the gun or its firing point. This also applies with refraction disabled. The stock-chassis restriction remains. Confirm the mod manager or startup log shows **Slap Pack 0.8.13** when testing.
 
 On the windshield, rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
 The blades clear their swept area, leaving water around the edges. Water bends the view through the glass using the current frame,
@@ -42,9 +42,8 @@ Vanilla rain and snow work on their own. **Continuous mode (II)** is intended fo
 and fast for heavier rain. Mode selection stays manual.
 
 [Open World](https://github.com/htubdawg/HalfGripOpenWorld) weather is supported through its public **WeatherView v1** API, including
-variable rain/snow intensity and world wind. That API is currently supplied by its
-[0.24.0+ API test branch](https://github.com/htubdawg/HalfGripOpenWorld/tree/claude/nifty-babbage-6o4kay).
-Older builds without the API use vanilla weather flags and cannot provide Open World's variable intensity.
+variable rain/snow intensity and world wind. Open World **0.24.0 or newer** provides it.
+Older Open World builds fall back to the vanilla weather flags, without variable intensity.
 
 ## Install
 
@@ -90,7 +89,8 @@ The `SlapPack` folder contains only `mod.json` and `src`. Development files, inc
 ## Settings
 
 Settings are written to `BepInEx\config\halfgrip.slappack.cfg` after the first launch. Close the game before editing it in Notepad,
-then restart. Existing saved settings are kept when updating: to use the new mirror default, set `MirrorFOV = 16` under `[Mirror]`.
+then restart. Each setting has a comment in the file. Existing saved settings are kept when updating, so a changed default (such as
+`MirrorFOV = 16` or the wiper `StalkUpAngle = 24`) only applies to an existing file if you set it yourself.
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -102,23 +102,30 @@ then restart. Existing saved settings are kept when updating: to use the new mir
 | `Windows.WeatherEffects` | `true` | Light side/rear rain and snow; independent of crank and wiper settings |
 | `Windows.TintOpacity` | `0.04` | Tint on raised side-window glass |
 | `Windows.TurnsForFullTravel` | `3` | Crank turns from fully raised to fully lowered |
+| `Windows.WriteGeometryReport` | `false` | Development only: writes a cabin geometry report (see the [development notes](docs/development.md)) |
 | `TurnSignals.Enabled` | `true` | Enables the signal stalk, arrows and exterior lamps |
 | `TurnSignals.ClickSound` / `ClickVolume` | `true` / `0.35` | Relay sound and volume |
-| `Wipers.Enabled` | `true` | Enables wipers and their controls |
+| `TurnSignals.ShortFlashes` | `3` | Flashes for a released halfway tap (1–6) |
+| `TurnSignals.BlinkHalfPeriod` | `0.4` | Seconds per on/off phase (0.2–1) |
+| `TurnSignals.CancelArmSteering` / `CancelCenteredSteering` | `12` / `4` | Steering degrees into the turn that arm self-cancel, and how close to center completes it |
+| `TurnSignals.CancelMinimumTurn` | `15` | Degrees the car must actually turn before the signal cancels, so moving the wheel while parked does not cancel it |
+| `TurnSignals.StalkExtraLength` / `StalkUpAngle` | `1.8` / `30` | Signal stalk length past the wheel rim, and its upward angle in degrees |
+| `Wipers.Enabled` | `true` | Enables wipers and their controls. `false` also removes windshield rain/snow |
 | `Wipers.WeatherEffects` | `true` | Enables windshield rain/slush buildup and wiping |
-| `Wipers.StalkUpAngle` | `24` | Upward neutral stalk angle in degrees. Existing saved values are retained |
+| `Wipers.StalkLength` / `StalkUpAngle` | `3.5` / `24` | Wiper stalk length (shortened automatically to clear the shifter) and upward angle in degrees (0–30) |
 | `Wipers.IntermittentPause` | `2.5` | Seconds parked between wipes in mode I |
 | `Wipers.RainObscuration` | `1` | Strength of windshield water obscuration |
 | `Wipers.RefractionEnabled` | `true` | Water distortion; disabling it keeps the tint overlay |
 | `Wipers.RefractionCaptureWidth` | `320` | Scene-copy width (320–1280). Higher values give finer detail at more cost |
 | `Wipers.RefractionStrength` | `0.008` | Strength of the distortion |
-| `Diagnostics.VerboseLogging` | `false` | Detailed binding, weather-provider and rendering logs |
+| `Diagnostics.VerboseLogging` | `false` | Detailed binding, weather-provider, refraction, mirror and held-gun logs |
 | `Diagnostics.RefractionDebugTint` | `false` | Magenta wet-mask diagnostic; leave off for normal play |
 
 ## Notes
 
 - **Troubleshooting:** check `BepInEx\LogOutput.log` for `Loaded Slap Pack` and any warnings/errors. For weather problems, enable
   `Diagnostics.VerboseLogging`, restart, and share the log. [Development notes](docs/development.md) explain the diagnostics.
+- **Tutorial:** it starts without a loadout from the race menu, so the game fits the stock car and Slap Pack works there.
 - **Multiplayer:** turn signals are local visuals and are not replicated to other players' cars.
 - **Limitations:** windows change the visible glass, not bullet collision or sound. There is no persistent ice/frost, washer-fluid
   consumption, automatic rain sensing or hazard-light control. Unsupported door artwork is skipped with a warning.

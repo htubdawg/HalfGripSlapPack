@@ -25,10 +25,18 @@ internal static class ChassisCompatibilityTests
 
 	internal static void Run(Action<string, Action> check)
 	{
-		check("Chassis gate waits for known loadouts and accepts the unmodified base car", () =>
+		check("Unknown loadouts (tutorial) are the stock car; known ones accept the unmodified base car", () =>
 		{
-			Reset(); PlayerLoadout.Known = false; Expect(false);
-			PlayerLoadout.Known = true; Expect(true);
+			Reset(); PlayerLoadout.Known = false; Expect(true);
+			PlayerLoadout.Equipped.Add(helicopter); Expect(true);
+			PlayerLoadout.Known = true; Expect(false);
+			PlayerLoadout.Equipped.Clear(); Expect(true);
+		});
+		check("An unavailable original catalog disables additions even with an unknown loadout", () =>
+		{
+			ItemCatalog.Instance = new ItemCatalog { items = new List<UpgradeComponent>() };
+			PlayerLoadout.Known = false; PlayerLoadout.Equipped = new List<UpgradeComponent>();
+			ChassisCompatibility.Initialize(message => { }); Expect(false);
 		});
 		check("Stock chassis IDs remain supported in copied equipped items", () =>
 		{

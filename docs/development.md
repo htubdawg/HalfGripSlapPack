@@ -18,7 +18,7 @@ dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
 HalfGripTools compiles `SlapPack/src` at game startup. The repository-root SlapPack.csproj is a development compile check and explicitly includes only SlapPack/src/**/*.cs. Its bin/obj output stays at the repository root; no development project or build output belongs inside the installable SlapPack folder.
 Keep private game DLLs, assets and diagnostic texture reports outside the repository and distribution.
 
-The compile check uses HalfGripRefs 0.419 / Unity 6000.3.22f1 and HalfGripTools 1.0.6. All 138 model/control tests pass. They cover mirror
+The compile check uses HalfGripRefs 0.419 / Unity 6000.3.22f1 and HalfGripTools 1.0.6. All 171 model/control tests pass (0.8.13). They cover mirror
 adjustment and camera masks, window travel/clipping, signal state/audio/layout, wiper controls/geometry, field accumulation/wiping/runoff,
 refraction math, visible-area gating, cached field neighbors and optional weather binding. The [API integration harness](public-weather-api.md)
 links the actual upstream WeatherView.cs and checks the public contract, including allocation-free delegate polling.
@@ -27,6 +27,8 @@ These checks do not execute Unity's GPU rendering or prove live optional-mod com
 orientation, depth/occlusion, material availability, pause/focus loss, washer cycles, Smart Mirror takeover/restoration and mod unload.
 
 ## Rendering and performance
+
+Version 0.8.13 (game 0.419) treats an unknown `PlayerLoadout` as the stock car. The game leaves the loadout unknown in the tutorial (`TutorialGate.Play` calls `PlayerLoadout.Forget`) and in any scene loaded without the race menu setting one; `LoadoutSpawner` then fits nothing and `CarSkinController` uses the stock skin, so no mod chassis can be on the car. 0.8.11–0.8.12 waited for a known loadout and so stayed off there. Helicopter's `HeliItem.Fitted` reads an unknown loadout the same way. The held-gun occlusion scan now reuses its renderer/material lists instead of allocating each wet frame, and a bound but inactive WeatherView is no longer re-bound every two seconds.
 
 Version 0.8.12 adds a depth-only foreground silhouette for the active `Gun.aimModel` 3D renderers. The native solid/cutout material's DepthOnly pass draws into the existing camera depth after sky and before refraction. Command projection X/Y/W are unchanged; Z is compressed about the near plane, preserving silhouette and near clipping. Command matrices are restored in finally; no gun transforms, shared assets or camera properties change. The existing gun color is retained and the foreground depth blocks both refraction and tint/slush overlays, including when refraction is off. The pass runs only for the player's world camera with owned weather; custom chassis remain excluded. Custom gun shaders need an enabled DepthOnly pass. Verbose five-second diagnostics report selected draws/graph records/depth submissions. Actual rasterization, edge sampling and depth-based postprocess interaction require a game test.
 

@@ -1,3 +1,22 @@
+# Maintenance update 0.8.13 — game 0.419
+
+jMods audit. `gameVersion` 0.419 (was 0.418); `tools` stays 1.0.6. Manifest, README and project version are 0.8.13.
+
+Fixed:
+- **Tutorial:** `ChassisCompatibility.AllowsAdditions` returned false while `PlayerLoadout.Known` was false, and the tutorial clears it (`TutorialGate.Play` calls `PlayerLoadout.Forget`), so every addition stayed off there. (The Playground is only opened by a dev command, which sets the loadout.) With an unknown loadout the game fits no chassis item (`LoadoutSpawner.ResolveLoadout` returns its editor list or nothing; `CarSkinController` uses the stock skin), so an unknown loadout now counts as the stock car. An unavailable original catalog still disables everything. Tests updated (one new).
+- **Held-gun occlusion:** the per-frame scan reuses renderer and material lists (`GetComponentsInChildren(false, list)`, `GetSharedMaterials(list)`) instead of allocating while the glass is wet. The draw array handed to the render pass is still a fresh snapshot.
+- **Weather source:** a bound WeatherView that reports inactive (outside Open World) is kept, not looked up and re-bound every two seconds. The missing-API warning now says to update Open World (0.24.0+) instead of pointing at the old API test branch.
+- **Config comments:** `Windows.Enabled` no longer says "prototype"; `Wipers.Enabled` says it also removes windshield weather; `VerboseLogging` lists the mirror and held-gun diagnostics; `WriteGeometryReport` says where the report goes and that it holds game assets.
+- **README:** Open World's WeatherView is in its releases since 0.24.0 (the test-branch link is gone, also from docs/public-weather-api.md); the settings table lists every setting (`StalkLength`, the turn-signal timing/cancel/stalk settings, `WriteGeometryReport`).
+
+Checked against game 0.419: every member named by string still exists (`SmartMirror.baseLocalRotation`; `Grabber.Update`, `LateUpdate`, `BeginHeldLook`, `UpdateIndicators`, `TryInteract(bool)`; `GameInput.HandUp(int)`). The wiper-knob transpiler also rewrites `Grabber.Update`'s second `HandUp(0)` (the `suppressSweep` reset); that one runs with nothing held, so it behaves as before. `ItemCatalog.Instance` loads from Resources, so the chassis snapshot taken in `Mod.Load` is available before HalfGripTools injects items (that happens at scene load / `UpgradeMapper.Awake`). The rear camera's stock FOV in the 0.419 dumps is 28.07°, as the `MirrorFOV` comment says.
+
+Validation: compile check against HalfGripRefs 0.419 / Unity 6000.3.22f1 passes with zero warnings/errors. The first pass used HalfGripTools 1.0.6 built from source; after the fixes, building HalfGripTools was refused in this session, so it ran against a stand-in `HalfGripTools` assembly with the `HalfGripMod`/`ModContext` members Slap Pack uses (signatures copied from HalfGripTools 1.0.6). All 171 tests pass.
+
+Runtime checks: everything listed for 0.8.12 below, plus start the tutorial from the main menu and confirm the mirror, cranks, stalks, wipers and weather attach; then equip Helicopter/Dacia from the race menu and confirm they are still excluded.
+
+---
+
 # Test update 0.8.12 — held 3D gun depth occlusion
 
 The player confirmed the prior transparent-queue change did not fix the held 3D weapon and supplied a screenshot. The aim model is distinct from the hanging cockpit sprite and its authored geometry can extend beyond the windshield. An opaque model rendered before the glass still loses the depth test to nearer glass, so queue 2999 alone cannot solve this case.
