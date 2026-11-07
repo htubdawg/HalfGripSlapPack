@@ -1,3 +1,13 @@
+# Maintenance update 0.8.13 — game 0.419
+
+jMods audit. `gameVersion` 0.419 (was 0.418); `tools` stays 1.0.6. Manifest, README and project version are 0.8.13. No gameplay or rendering code changed.
+
+Checked against game 0.419: every member named by string still exists (`SmartMirror.baseLocalRotation`; `Grabber.Update`, `LateUpdate`, `BeginHeldLook`, `UpdateIndicators`, `TryInteract(bool)`; `GameInput.HandUp(int)`). The wiper-knob transpiler also rewrites `Grabber.Update`'s second `HandUp(0)` (the `suppressSweep` reset); that one runs with nothing held, so it behaves as before. Compile check against HalfGripRefs 0.419 / Unity 6000.3.22f1 and HalfGripTools 1.0.6 built from source passes with zero warnings/errors. All 170 tests pass. Runtime checks are unchanged from 0.8.12 below.
+
+Seen but not changed: HeldGunWeatherOcclusion builds its draw list with GetComponentsInChildren and sharedMaterials on every rendered frame while wet (small per-frame allocations).
+
+---
+
 # Test update 0.8.12 — held 3D gun depth occlusion
 
 The player confirmed the prior transparent-queue change did not fix the held 3D weapon and supplied a screenshot. The aim model is distinct from the hanging cockpit sprite and its authored geometry can extend beyond the windshield. An opaque model rendered before the glass still loses the depth test to nearer glass, so queue 2999 alone cannot solve this case.
