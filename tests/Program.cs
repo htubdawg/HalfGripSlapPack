@@ -235,6 +235,7 @@ internal static class Program
         TurnSignalTests.Run(Check);
         SignalRelayTests.Run(Check);
         SignalStalkLayoutTests.Run(Check);
+        CockpitFacingTests.Run(Check);
         WiperTests.Run(Check);
         WiperKnobTests.Run(Check);
         WiperIntermittentTests.Run(Check);

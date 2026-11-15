@@ -1,3 +1,20 @@
+# Cockpit lighting fix — 0.8.15
+
+Reported on the dark EurekaMine track: its cabin lamp (a point light on the INTERIOR layer only) lit the washer stalk and the stock cockpit, but the turn-signal stalk and dash indicators stayed black.
+
+Cause: `WindowMaterials.Transparent` asks for `Universal Render Pipeline/Unlit` and falls back to `.../Lit`. Unlit is not in the game's build (no scene in the 0.418/0.419 dumps uses it; the cockpit sprites use URP/Lit), so these parts render with Lit. Their generated quads were wound counter-clockwise in local XY, so `RecalculateNormals` pointed them at +Z, away from the cockpit camera and lamp (the game's sprites face −Z). Culling is off, so they still drew, but Lit does not flip back-face normals and they got no direct light. The wiper stalk shares `SignalStalkArtwork.Attach`, but its mirrored X reversed the winding, which is the only reason it faced −Z and lit correctly. In daylight the problem only showed as the signal parts missing the sun's direct light, on top of the ambient light.
+
+Fix:
+- New `CockpitFacing` (Unity-free) orients triangles toward −Z. `SignalStalkArtwork` orients both stalks with it, and `TurnSignalVisuals.Polygon` (indicator bezel, lens, highlight, arrow, glow) fans with it. The wiper stalk's winding is unchanged.
+- `SignalDashLamp`: the lit arrow and its glow get `_EMISSION` with their own colour, so a flashing indicator glows without cabin light. The unlit arrow, bezel and lens are lit normally. Shaders without `_EmissionColor` are left unchanged.
+- The exterior amber lamps and the window crank (`CrankArtwork.CreateVisual`, built from the door's own axes) are unchanged.
+
+Validation: compile check against HalfGripRefs 0.419 (`tools/check-mod.sh`, HalfGripTools built from source) passes with zero warnings/errors. All 173 tests pass, including two new winding tests. These do not validate Unity/GPU lighting.
+
+Runtime checks: on EurekaMine underground, the signal stalk and both indicators should be lit by the cabin lamp like the washer stalk, and the active arrow should glow green. In daylight on a stock map, check that the stalk and indicators are no darker than before and the lit arrow is not distractingly bright. Check the stalk still draws in front of the gauge needles and behind the wheel. Confirm the log/manager shows Slap Pack 0.8.15.
+
+---
+
 # Icon — 0.8.14
 
 Adds `SlapPack/icon.png` (128×128 pixel art at 2×, like the other jMods icons: a red windshield in the rain with the wiper's swept arc, the rear-view mirror and a lit turn-signal arrow) and `"icon": "icon.png"` in `mod.json`, so the HalfGripTools mod manager shows a picture for Slap Pack. Manifest, README and project version are 0.8.14. README layout and CLAUDE.md's installable-folder rule list the icon. No code change, so the compile check and tests were not rerun; check in game that the picture shows in the mod manager.
