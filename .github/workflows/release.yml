@@ -1,0 +1,100 @@
+# Publishes a GitHub release when a new Slap Pack version reaches main.
+# Runs when SlapPack/mod.json changes on main (or by hand from the Actions tab), and skips
+# versions that already have a release. The game DLLs are private, so this cannot run the
+# compile check; it runs the Unity-free model tests and packages the installable folder.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [SlapPack/mod.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Read version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version SlapPack/mod.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "Release v$version already exists; nothing to do."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check versions agree
+        if: steps.version.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          grep -q "<Version>$VERSION</Version>" SlapPack.csproj || { echo "::error::SlapPack.csproj Version is not $VERSION"; exit 1; }
+          grep -q "\*\*Version $VERSION\*\*" README.md || { echo "::error::README version is not $VERSION"; exit 1; }
+
+      - name: Check installable folder
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          extra=$(git ls-files SlapPack | grep -v -E '^SlapPack/(icon\.png|mod\.json|src/.+)$' || true)
+          if [ -n "$extra" ]; then echo "::error::Unexpected files in SlapPack/:"; echo "$extra"; exit 1; fi
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.version.outputs.exists == 'false'
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run model tests
+        if: steps.version.outputs.exists == 'false'
+        run: dotnet run --project tests/MirrorAdjustment.Tests.csproj -c Release
+
+      - name: Package
+        if: steps.version.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Only tracked files, with SlapPack/ at the top of the zip so it can be copied
+          # straight into BepInEx/HalfGripMods/.
+          git ls-files SlapPack | zip -X -q "SlapPack-$VERSION.zip" -@
+          unzip -l "SlapPack-$VERSION.zip"
+
+      - name: Write release notes
+        if: steps.version.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # STATUS.md sections newer than the version main had before this push.
+          previous=$(git show HEAD^:SlapPack/mod.json 2>/dev/null | jq -r .version 2>/dev/null || true)
+          {
+            echo "Copy the \`SlapPack\` folder from \`SlapPack-$VERSION.zip\` into \`<game>\\BepInEx\\HalfGripMods\\\`, replacing any older one. Needs HalfGripTools $(jq -r .tools SlapPack/mod.json)+ and game $(jq -r .gameVersion SlapPack/mod.json)."
+            echo
+            if [ -n "$previous" ] && [ "$previous" != "$VERSION" ]; then
+              awk -v stop="— $previous" '/^# / && index($0, stop) { exit } { print }' STATUS.md
+            else
+              awk '/^---$/ { exit } { print }' STATUS.md
+            fi
+          } > notes.md
+          cat notes.md
+
+      - name: Publish release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" "SlapPack-$VERSION.zip" \
+            --title "Slap Pack $VERSION" --notes-file notes.md --target "$GITHUB_SHA"
