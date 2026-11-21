@@ -124,6 +124,7 @@ internal static class WiperTests
             var opening = WindowPolygon.Hull(new[] { new PanePoint(-1.235474f, -0.791847f), new PanePoint(0, -0.720308f),
                 new PanePoint(1.235474f, -0.791847f), new PanePoint(0.982076f, 0.742094f), new PanePoint(0, 0.770062f), new PanePoint(-0.982076f, 0.742094f) });
             CheckSweep(opening);
+            CheckOverlap(opening);
         });
         check("Wiper knob settings remain distinct at native pixel resolution", () =>
         {
@@ -192,6 +193,42 @@ internal static class WiperTests
             Equal(0, state.Sweep); Assert(state.Speed == WiperSpeed.Slow && state.Parked, "Burst skipped its intermittent pause.");
             state.Tick(1.5f); Equal(1, state.Sweep);
         });
+    }
+
+    // Tandem pattern: the swept areas share a middle band but each blade still clears its own side.
+    private static void CheckOverlap(List<PanePoint> opening)
+    {
+        var driver = new WiperGeometry(opening, false); var passenger = new WiperGeometry(opening, true);
+        float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
+        foreach (PanePoint p in opening) { minX = Math.Min(minX, p.X); maxX = Math.Max(maxX, p.X); minY = Math.Min(minY, p.Y); maxY = Math.Max(maxY, p.Y); }
+        int inside = 0, driverOnly = 0, passengerOnly = 0, both = 0;
+        for (int y = 0; y < 100; y++)
+            for (int x = 0; x < 100; x++)
+            {
+                var p = new PanePoint(minX + (x + 0.5f) / 100 * (maxX - minX), minY + (y + 0.5f) / 100 * (maxY - minY));
+                bool contained = true;
+                for (int edge = 0; edge < opening.Count; edge++)
+                {
+                    PanePoint a = opening[edge], b = opening[(edge + 1) % opening.Count];
+                    if ((b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X) < 0) contained = false;
+                }
+                if (!contained) continue;
+                inside++;
+                bool d = Wiped(driver, p), q = Wiped(passenger, p);
+                if (d && q) both++; else if (d) driverOnly++; else if (q) passengerOnly++;
+            }
+        Assert(both > inside * 0.05f, "The two wiper sweeps barely overlap.");
+        Assert(driverOnly > inside * 0.15f && passengerOnly > inside * 0.1f, "One blade only repeats the other's sweep.");
+        Assert(both + driverOnly + passengerOnly > inside * 0.5f, "The wipers clear too little of the windshield.");
+        Assert(driver.Radius > passenger.Pivot.X - driver.Pivot.X, "The parked driver blade does not reach past the passenger pivot.");
+    }
+
+    private static bool Wiped(WiperGeometry g, PanePoint p)
+    {
+        double dx = p.X - g.Pivot.X, dy = p.Y - g.Pivot.Y, radius = Math.Sqrt(dx * dx + dy * dy);
+        double angle = Math.Atan2(dy, dx) * 180 / Math.PI;
+        return radius >= g.Radius * 0.35 && radius <= g.Radius
+            && angle >= WiperGeometry.ParkDegrees && angle <= WiperGeometry.ParkDegrees + WiperGeometry.TravelDegrees;
     }
 
     private static void CheckSweep(List<PanePoint> opening)

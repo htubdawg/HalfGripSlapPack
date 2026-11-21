@@ -4,11 +4,17 @@ using System.Linq;
 
 namespace HalfGripSlapPack
 {
+	/// <summary>
+	/// Tandem wiper layout: both blades park pointing toward the passenger side and sweep up together.
+	/// The driver blade is long enough to reach past the passenger pivot, so the two swept areas
+	/// overlap in the middle of the glass instead of forming two separate fans.
+	/// </summary>
 	internal sealed class WiperGeometry
 	{
 		internal readonly PanePoint Pivot;
 		internal readonly float Radius;
-		internal const float ParkDegrees = 7, TravelDegrees = 83;
+		internal const float ParkDegrees = 5, TravelDegrees = 90;
+		internal const float DriverPivot = 0.18f, PassengerPivot = 0.48f;
 
 		internal WiperGeometry(IReadOnlyList<PanePoint> opening, bool passenger)
 		{
@@ -17,7 +23,7 @@ namespace HalfGripSlapPack
 			float minY = opening.Min(p => p.Y), maxY = opening.Max(p => p.Y);
 			float width = maxX - minX, height = maxY - minY;
 			if (width < 0.5f || height < 0.3f) throw new ArgumentException("Windshield opening is too small.");
-			float x = minX + width * (passenger ? 0.61f : 0.17f);
+			float x = minX + width * (passenger ? PassengerPivot : DriverPivot);
 			float bottom = float.PositiveInfinity;
 			for (int i = 0; i < opening.Count; i++)
 			{
@@ -26,10 +32,10 @@ namespace HalfGripSlapPack
 				bottom = Math.Min(bottom, a.Y + (b.Y - a.Y) * (x - a.X) / (b.X - a.X));
 			}
 			Pivot = new PanePoint(x, bottom + height * 0.035f);
-			float radius = Math.Min(width * 0.4f, height * 0.8f);
+			float radius = Math.Min(width * 0.55f, height * 0.9f);
 			// Constrain the whole sweep, not just the parked blade. The margin also clears
 			// the rubber blade's width and the pillars of trapezoidal windshields.
-			for (int degree = 0; degree <= 83; degree++)
+			for (int degree = 0; degree <= (int)TravelDegrees; degree++)
 			{
 				double angle = (ParkDegrees + degree) * Math.PI / 180;
 				float dx = (float)Math.Cos(angle), dy = (float)Math.Sin(angle);

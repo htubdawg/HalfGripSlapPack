@@ -109,5 +109,36 @@ internal static class WiperKnobTests
                 }
             Assert(visited.SetEquals(new[] { 0f, 1f, 2f, 3f }), "Dial exposed an intermediate position or skipped a detent.");
         });
+        check("Each mouse-wheel notch over the stalk moves exactly one speed detent", () =>
+        {
+            var scroll = new WiperScrollDetents(); WiperSpeed speed = WiperSpeed.Off;
+            speed = scroll.Scroll(speed, 1); Assert(speed == WiperSpeed.Slow, "Up did not select slow.");
+            speed = scroll.Scroll(speed, 1); Assert(speed == WiperSpeed.Medium, "Up did not select medium.");
+            speed = scroll.Scroll(speed, 1); Assert(speed == WiperSpeed.Fast, "Up did not select fast.");
+            speed = scroll.Scroll(speed, -1); Assert(speed == WiperSpeed.Medium, "Down did not select medium.");
+            speed = scroll.Scroll(speed, 0); Assert(speed == WiperSpeed.Medium, "No movement changed speed.");
+            speed = scroll.Scroll(speed, -2); Assert(speed == WiperSpeed.Off, "Two notches did not move two detents.");
+        });
+        check("Scrolling past a hard stop is not banked for the reverse direction", () =>
+        {
+            var scroll = new WiperScrollDetents();
+            WiperSpeed speed = scroll.Scroll(WiperSpeed.Fast, 5);
+            Assert(speed == WiperSpeed.Fast, "Scrolled past fast.");
+            speed = scroll.Scroll(speed, -1); Assert(speed == WiperSpeed.Medium, "Extra upward scroll delayed the reverse.");
+            speed = scroll.Scroll(WiperSpeed.Off, -3.5f); Assert(speed == WiperSpeed.Off, "Scrolled below off.");
+            speed = scroll.Scroll(speed, 1); Assert(speed == WiperSpeed.Slow, "Extra downward scroll delayed the reverse.");
+        });
+        check("Fractional trackpad scrolling accumulates and resets on reversal or leaving the stalk", () =>
+        {
+            var scroll = new WiperScrollDetents(); WiperSpeed speed = WiperSpeed.Off;
+            for (int i = 0; i < 9; i++) speed = scroll.Scroll(speed, 0.1f);
+            Assert(speed == WiperSpeed.Off, "A partial notch changed speed.");
+            speed = scroll.Scroll(speed, 0.15f); Assert(speed == WiperSpeed.Slow, "Accumulated notch was lost.");
+            speed = scroll.Scroll(speed, 0.9f); speed = scroll.Scroll(speed, -0.2f); speed = scroll.Scroll(speed, 0.2f);
+            Assert(speed == WiperSpeed.Slow, "Reversal kept the partial notch.");
+            scroll.Reset(); speed = scroll.Scroll(speed, 0.9f); scroll.Reset(); speed = scroll.Scroll(speed, 0.2f);
+            Assert(speed == WiperSpeed.Slow, "Leaving the stalk kept the partial notch.");
+            Assert(scroll.Scroll(speed, float.NaN) == speed && scroll.Scroll(speed, float.PositiveInfinity) == speed, "Invalid wheel input changed speed.");
+        });
     }
 }

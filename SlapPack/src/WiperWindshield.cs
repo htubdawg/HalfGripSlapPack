@@ -245,8 +245,13 @@ namespace HalfGripSlapPack
 			spray.vertices = drops; spray.RecalculateBounds();
 		}
 
+		// The tandem blades cross and stack when parked; the passenger blade rides above every
+		// driver-blade part (0.012-0.025) so the opaque quads never share a depth.
+		private const float PassengerLift = 0.014f;
+
 		private void Rect(Vector3[] target, int quad, WiperGeometry g, float x0, float y0, float x1, float y1, float c, float s, float depth)
 		{
+			if (g == geometry[1]) depth += PassengerLift;
 			int i = quad * 4;
 			target[i] = glass.Surface(g.Point(x0, y0, c, s), depth);
 			target[i + 1] = glass.Surface(g.Point(x1, y0, c, s), depth);

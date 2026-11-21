@@ -1,6 +1,6 @@
 # Slap Pack for Half Grip
 
-**Version 0.8.15** · for Half Grip Demo 0.419 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
+**Version 0.8.16** · for Half Grip Demo 0.419 · needs [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6 or newer**
 
 More things to grab in your car: adjust the rear-view mirror, wind the windows down, use the turn signals, and clear rain and slush
 with working windshield wipers. Rain builds up on the windshield and distorts the view until you wipe it away. Side and rear windows get lighter, self-clearing weather.
@@ -16,7 +16,7 @@ Use the game's normal hand/grab control.
 | **Rear-view mirror** | Grab the casing and drag to aim it. Release to save the position. Right-click while hovering or holding to reset |
 | **Window cranks** | Grab either door's crank and move your hand in circles. Clockwise lowers that window; counterclockwise raises it |
 | **Turn-signal stalk** (left) | Grab the end and move down for left, up for right. A halfway tap gives three flashes; full travel latches it. Return to neutral to cancel |
-| **Wiper speed sleeve** (right) | Hold right-click on the end and drag up/down through **0 / I / II / III**: off, intermittent, continuous, fast |
+| **Wiper speed sleeve** (right) | Hover the hand over the stalk and scroll up/down through **0 / I / II / III**: off, intermittent, continuous, fast. On a controller, grab the end with the second hand button (right-click) and drag up/down as before |
 | **Washer stalk** (right) | Left-click and pull down to spray and wipe. Release stops the spray; a quick pull completes at least three full wipe cycles |
 
 The mirror now defaults to a **16° field of view**. Its adjustment is saved between races. If you have the Smart Mirror upgrade,
@@ -27,7 +27,7 @@ click, and cancel after you complete the indicated turn. The wipers finish their
 
 ### Rain and snow
 
-Version **0.8.15** makes the turn-signal stalk and dash indicators respond to cockpit light like the washer stalk (they faced away from it and stayed black under a dark map's cabin lamp), and the flashing arrow now glows by itself. Version **0.8.14** added the mod manager icon. Version **0.8.13** is for game 0.419. Slap Pack now also works in the **tutorial**, where 0.8.11–0.8.12 stayed off. Version **0.8.12** added depth occlusion for the **held 3D gun**, whose model can extend past the windshield. Its mesh silhouette blocks glass tint/slush and refraction without moving the gun or its firing point. This also applies with refraction disabled. The stock-chassis restriction remains. Confirm the mod manager or startup log shows **Slap Pack 0.8.15** when testing.
+Version **0.8.16** sets the wiper speed with the **mouse wheel** while the hand hovers the right-hand stalk (controllers keep the right-button drag), and lays the blades out in a **tandem pattern** whose sweeps overlap in the middle of the glass. Version **0.8.15** makes the turn-signal stalk and dash indicators respond to cockpit light like the washer stalk (they faced away from it and stayed black under a dark map's cabin lamp), and the flashing arrow now glows by itself. Version **0.8.14** added the mod manager icon. Version **0.8.13** is for game 0.419. Slap Pack now also works in the **tutorial**, where 0.8.11–0.8.12 stayed off. Version **0.8.12** added depth occlusion for the **held 3D gun**, whose model can extend past the windshield. Its mesh silhouette blocks glass tint/slush and refraction without moving the gun or its firing point. This also applies with refraction disabled. The stock-chassis restriction remains. Confirm the mod manager or startup log shows **Slap Pack 0.8.16** when testing.
 
 On the windshield, rain leaves droplets and running water; snow builds a wipeable slush layer. Impacts, airflow and car speed affect the buildup and runoff.
 The blades clear their swept area, leaving water around the edges. Water bends the view through the glass using the current frame,
