@@ -6,6 +6,10 @@ Rain/snow clearing uses `WiperGeometry.SweepAt`, which finds the one blade point
 
 Validation: compile check against HalfGripRefs 0.419 passes with zero warnings/errors. All 177 tests pass. The frame-clearance sweep now covers the pivot, joint and both blade ends. A new test checks the blade's angle to the arm and that `SweepAt` returns the drawn blade's sweep. The overlap check uses the parked blade's real outer end. These do not validate Unity/GPU rendering.
 
+Player confirmed in game (Tokyo, rain) that the parked and sweeping wipers look right; their two screenshots are in the README (`docs/images/`).
+
+Release: `.github/workflows/release.yml` publishes `v<version>` with `SlapPack-<version>.zip` (the tracked `SlapPack/` folder only) when `SlapPack/mod.json` changes on `main`, or when run by hand. It skips versions that already have a release. It checks that the manifest, project and README versions agree and that `SlapPack/` holds only the icon, manifest and `src/`, and it runs the model tests. The notes are the STATUS.md sections newer than the previous `main` version. It cannot run the compile check, because the game DLLs are private.
+
 Runtime checks: in addition to those below, confirm that the arm visibly meets the blade near its middle at an angle, that neither blade end leaves the glass at park or at full travel on both bodies, and that wet glass clears under the blade rather than beside it.
 
 ---

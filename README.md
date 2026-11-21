@@ -7,6 +7,10 @@ with working windshield wipers. Rain builds up on the windshield and distorts th
 
 Slap Pack additions are limited to the game's original chassis. Custom chassis such as **Helicopter** and **Dacia Body** are skipped, even when they reuse stock cockpit parts. Refitting a custom chassis removes Slap Pack's additions; returning to a stock chassis lets them reattach. Other mods' guns and accessories do not disable Slap Pack.
 
+| Wipers parked | Mid-sweep, clearing the rain |
+|---|---|
+| ![Rainy Tokyo through the windshield with both wipers parked along the bottom of the glass](docs/images/wipers-parked.png) | ![Both wipers sweeping up the windshield, leaving a clear path through the rain](docs/images/wipers-sweeping.png) |
+
 ## In the cockpit
 
 Use the game's normal hand/grab control.
@@ -64,12 +68,12 @@ More about installing and removing mods is in the [HalfGripMods README](https://
 
 1. Install BepInEx and [HalfGripTools](https://github.com/4l3x4nd3r0/HalfGripTools) **1.0.6+** if needed. Steps 1 and 2 of the
    [HalfGripTools README](https://github.com/4l3x4nd3r0/HalfGripTools#install) cover both.
-2. Download this repository (**Code > Download ZIP**) and unzip it.
+2. Download `SlapPack-<version>.zip` from this repository's **Releases** page (or **Code > Download ZIP**) and unzip it.
 3. Delete any older `SlapPack` folder in `<game>\BepInEx\HalfGripMods\`, then copy the **`SlapPack`** folder from the download into it.
 4. Start the game and wait for the main menu. The mod manager should list **Slap Pack**.
 
 > [!IMPORTANT]
-> **Copy only the `SlapPack` folder, not the whole download.** The ZIP contains `HalfGripSlapPack-main\`, with `SlapPack` inside it.
+> **Copy only the `SlapPack` folder, not the whole download.** The release ZIP contains `SlapPack\` at its top; the Code ZIP contains `HalfGripSlapPack-main\`, with `SlapPack` inside it.
 > `mod.json` must sit directly inside `HalfGripMods\SlapPack\`.
 
 Correct layout:
