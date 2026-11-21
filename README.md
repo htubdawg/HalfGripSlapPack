@@ -9,7 +9,7 @@ Slap Pack additions are limited to the game's original chassis. Custom chassis s
 
 | Wipers parked | Mid-sweep, clearing the rain |
 |---|---|
-| ![Rainy Tokyo through the windshield with both wipers parked along the bottom of the glass](docs/images/wipers-parked.png) | ![Both wipers sweeping up the windshield, leaving a clear path through the rain](docs/images/wipers-sweeping.png) |
+| ![Rainy Tokyo through the windshield with both wipers parked along the bottom of the glass](docs/images/wipers-stopped.png) | ![Both wipers sweeping up the windshield, leaving a clear path through the rain](docs/images/wipers-moving.png) |
 
 ## In the cockpit
 
