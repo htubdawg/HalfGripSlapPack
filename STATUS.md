@@ -1,3 +1,15 @@
+# Articulated wipers — 0.8.18
+
+Reported: the blades still came straight out of the pivot as single sticks. Each wiper is now an arm plus a blade. The straight arm runs from the pivot to a joint at 0.58 × the wiper scale. The blade is attached at that joint, extending 0.42 outward and 0.36 inward, and sits 11° back from the arm toward the parked side, as in the supplied reference (mirrored, because these blades park toward the passenger side). The rubber, support and hinge are drawn in the blade's own frame (`WiperGeometry.BladePoint`). The arm, its edge and the hub follow the arm as before. The frame fit now checks the joint and both blade ends through the whole sweep. The arm parks at 8° and travels 88°, so the blade's outer end parks at about 3.5° and its inner end leads the arm by about 17°.
+
+Rain/snow clearing uses `WiperGeometry.SweepAt`, which finds the one blade point at a given distance from the pivot and the arm angle that puts it over the pixel. The cleared area therefore follows the angled blade, and the uncleared patch near each pivot ends at the blade's inner end. On the stock glass about 60 % is cleared and about 13 % is cleared by both blades.
+
+Validation: compile check against HalfGripRefs 0.419 passes with zero warnings/errors. All 177 tests pass. The frame-clearance sweep now covers the pivot, joint and both blade ends. A new test checks the blade's angle to the arm and that `SweepAt` returns the drawn blade's sweep. The overlap check uses the parked blade's real outer end. These do not validate Unity/GPU rendering.
+
+Runtime checks: in addition to those below, confirm that the arm visibly meets the blade near its middle at an angle, that neither blade end leaves the glass at park or at full travel on both bodies, and that wet glass clears under the blade rather than beside it.
+
+---
+
 # Wiper scroll control and tandem sweep — 0.8.17 (0.8.16)
 
 **Speed by mouse wheel.** With the free hand hovering any part of the right-hand wiper stalk, each wheel notch moves the sleeve one detent (up = faster: 0 → I → II → III), with the detent click and the dial art updating as before. `WiperScrollDetents` (Unity-free) accumulates fractional trackpad deltas to one notch, drops the partial notch on reversal or when the hand leaves the stalk, and does not bank scrolling past off/fast. It reads `GameInput.mouseScrollDelta`, so a muted game ignores it; nothing in the cockpit used the wheel before (the game's other wheel users are the outside camera, menus and the dev console). Scrolling is ignored while the hand holds anything. The right-button drag (`WiperKnobGrab`/`WiperKnobRotation`) is unchanged and still available to everyone, mouse and controller alike (0.8.16 had wrongly gated it on `GameInput.PadActive`; 0.8.17 removes that gate). The washer pull (left button) is unchanged.
