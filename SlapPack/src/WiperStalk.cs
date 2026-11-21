@@ -42,8 +42,8 @@ namespace HalfGripSlapPack
         }
 
         /// <summary>
-        /// Mouse speed control: hover the free hand over the stalk and scroll. The controller
-        /// keeps the right-button drag through detents (see <see cref="OnRightClick"/>).
+        /// Mouse speed control: hover the free hand over the stalk and scroll. The right-button
+        /// drag through detents (see <see cref="OnRightClick"/>) remains for everyone, including controllers.
         /// </summary>
         private void CheckScroll()
         {
@@ -100,8 +100,6 @@ namespace HalfGripSlapPack
 
         protected override void OnRightClick()
         {
-            // Mouse users scroll instead; the drag remains for controllers, which have no wheel.
-            if (!GameInput.PadActive) return;
             if (!CanInteract || hand.Held || !hand.Hovered || hand.Hovered.GetComponentInParent<WiperStalk>() != this) return;
             RotatingKnob = true;
             WiperKnobGrab.Begin(hand);
